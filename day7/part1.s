@@ -130,26 +130,36 @@ readnext:
 	jmp readloop
 readdone:
 
-	#; now that we've finally read all data, find who's
-	#; holding most people (their weight will be max)
+	#; now that we've finally read all data,
+	#; we need to find who's at the bottom. but who?
+	#; well, simply the one who's not held by anyone!
 	lea r12, names[rip]
-	lea r13, weights[rip]
 
-	mov rax, [r12]  #; max name
-	mov rbx, [r13]  #; max weight
-findmaxloop:
+	#; r12 will be the iterator over names
+	#; r14 will be the iterator of ROWS over holders
+findbottom_loop:
+	mov rax, [r12]  #; with this name, search in holders
 	add r12, 8
-	add r13, 8
-	mov rdx, [r13]
-	test rdx, rdx
-	jz findmaxdone
+	lea r14, holders[rip]  #; start again for every name
 
-	cmp rdx, rbx
-	jle findmaxloop
-	mov rax, [r12]
-	mov rbx, rdx
-	jmp findmaxloop
-findmaxdone:
+findbottom_rowloop:
+	mov rcx, [r14]
+	add r14, HOLDERS*8
+	test rcx, rcx
+	jz found_bottom  #; no holders in clean row, end!
+
+	mov rbx, 0  #; index inside current holders row
+findbottom_holderloop:
+	inc rbx
+	mov rcx, [r14+rbx*8]
+	test rcx, rcx
+	jz findbottom_rowloop  #; no more holders here, next row
+
+	cmp rcx, rax
+	je findbottom_loop  #; we found someone holding us
+	jmp findbottom_holderloop  #; check more holders
+
+found_bottom:
 	call showname
 
 	pop r15
