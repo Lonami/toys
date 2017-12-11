@@ -67,6 +67,8 @@ shownamenext:
 	ret
 
 
+#; gets the index from name to -> [names]
+#; r12 contains the base of the names
 #; rax contains the name, uses rcx
 #; rdi will contain index
 getindex:
@@ -75,6 +77,23 @@ getindex:
 	repne scasq
 	sub rdi, r12
 	sub rdi, 8  #; we overshoot by one
+	ret
+
+
+#; gets the index from name -> [holders]
+#; r14 contains the base of the holders
+#; rdx contains the name
+#; rax will contain zero if not found, and rsi the index
+getholderindex:
+	mov rsi, -HOLDERS*8
+getholderindexloop:
+	add rsi, HOLDERS*8
+	mov rax, [r14+rsi]
+	test rax, rax
+	jz getholderindexdone
+	cmp rax, rdx
+	jne getholderindexloop
+getholderindexdone:
 	ret
 
 
@@ -94,16 +113,10 @@ calctowers:
 	mov rdx, [r12+rdi]  #; rdx holds the name
 	mov rbx, [r13+rdi]  #; rbx holds the sum
 
-	#; find the list of holders, rsi is row index
-	mov rsi, -HOLDERS*8
-calctowers_holderloop:
-	add rsi, HOLDERS*8
-	mov rax, [r14+rsi]
+	#; find the list of holders, rsi contains row index
+	call getholderindex
 	test rax, rax
 	jz calctowers_done
-
-	cmp rax, rdx
-	jne calctowers_holderloop
 
 	#; we found this in the list of who holds!
 calctowers_sumloop:
