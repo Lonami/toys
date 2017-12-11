@@ -88,6 +88,7 @@ calctowers:
 	#; we recursively call this method to add all the
 	#; weights up, and return that
 	push rbx
+	push rsi
 	push rdi
 
 	mov rdx, [r12+rdi]  #; rdx holds the name
@@ -113,10 +114,7 @@ calctowers_sumloop:
 
 	#; find the index of this name (in rax name, out rdi index)
 	call getindex
-	mov rcx, rax  #; DEBUG
-	push rcx
 	call calctowers
-	pop rcx
 	add rbx, rax  #; result is in rax, add to our accum
 	jmp calctowers_sumloop
 
@@ -124,8 +122,9 @@ calctowers_done:
 	mov rax, rbx
 
 	pop rdi
-	mov rcx, [r12+rdi]  #; DEBUG
 	mov [r15+rdi], rax
+
+	pop rsi
 	pop rbx
 	ret
 
