@@ -142,6 +142,79 @@ calctowers_done:
 	ret
 
 
+#; r14 contains the base of the holders
+#; r15 contains the base of the tower weights
+#; rsi contains the index (to start of row) of holders
+#;
+#; uses rcx (when calling getindex)
+#; returns in rax 1 if it's unbalanced or 0 if balanced
+isunbal:
+	push rbx
+	push rdx  #; hold from memory and on division
+
+	mov rbx, 0  #; counter of held towers
+	mov rdx, 0  #; weight accumulator
+
+isunballoop:
+	add rsi, 8
+	mov rax, [r14+rsi]
+	test rax, rax
+	jz isunballdone
+
+	#; find the index of this name and then its weight
+	call getindex
+	mov rax, [r15+rdi]
+
+	add rdx, rax
+	inc rbx
+	jmp isunballoop
+
+isunballdone:
+	#; we have the total weight and how many towers.
+	#; we divide this weight by the count of towers.
+	#; if the result weight is not equal to any (e.g.
+	#; the last tower being held), then it means that
+	#; it's unbalanced, because there's no way for for
+	#; the weight to be equal assuming only one is wrong
+	sub rsi, 8  #; back to last tower
+
+	#; now we perform division.. somehow
+	xchg rax, rdx  #; rax is zero, zero out rdx, save acc in rax
+	div rbx
+
+	cmp rax, [r14+rsi]
+	setne al  #; not equal, unbalanced, then al = 1
+	and rax, 0xff
+
+	pop rdx
+	pop rbx
+	ret
+
+
+#; finds the highest depth index of which tower is unbalanced.
+#; this algorithm works by keeping track of both the best depth
+#; so far and its associated index, updating it when better are
+#; found (bigger depth, also unbalanced). returns said index.
+#;
+#; bases: r12 of names, r13 of weights, r14 of holders, r15 of tower weights
+#; rdi contains the current tower index
+#; r8 contains bigger depth, r9 the index
+findunbal:
+	mov rdx, [r12+rdi]
+	call getholderindex
+
+	test rax, rax
+	jz findunbal_done
+
+findunbal_whichloop:
+	add rsi, 8
+
+
+findunbal_done:
+	ret
+ note: i don't feel like doing this, i'm tired
+
+
 main:
 	push rbp
 	push r12
@@ -249,6 +322,10 @@ found_bottom:
 	#; now the index is in rdi, calculate all the weights
 	call calctowers
 
+	#; the weights of the towers has been calculated
+	#; the index on rdi hasn't been lost. now we need
+	#; to find where it's unbalanced
+
 	pop r15
 	pop r14
 	pop r13
@@ -256,4 +333,3 @@ found_bottom:
 	pop rbp
 	xor rax, rax
 	ret
-
