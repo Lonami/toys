@@ -55,6 +55,7 @@ workloop:
     mov cl, r8b
     mov bh, [rdi+rdx]
     add cl, bh
+    dec cl  #; indices start at 0
     mov bl, bh
     shr bl  #; we just need half the iterations to swap
     jz revloopnext  #; or even none if length <= 1
