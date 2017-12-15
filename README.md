@@ -5,5 +5,5 @@ hand-crafted version to try to mimic the original site. You can use the
 following command to generate a pretty view of the problem definitions:
 
 ```
-pandoc -s dayX/definition.md -c aoc.css -o out.html
+pandoc -s dayX/README.md -c aoc.css -o out.html
 ```
