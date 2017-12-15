@@ -151,17 +151,17 @@ opif_greaterequalthan:
 	jmp mainloop
 
 opapply:
-    mov rax, [rsi+r14*8]
+	mov rax, [rsi+r14*8]
 	test r12, r12
 	jnz opapply_noneg
-    neg r13
+	neg r13
 opapply_noneg:
-    add rax, r13
-    cmp rax, best[rip]
-    jle opapply_done
-    mov best[rip], rax
+	add rax, r13
+	cmp rax, best[rip]
+	jle opapply_done
+	mov best[rip], rax
 opapply_done:
-    mov [rsi+r14*8], rax
+	mov [rsi+r14*8], rax
 	jmp mainloop
 
 done:
