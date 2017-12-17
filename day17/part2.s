@@ -21,10 +21,12 @@ mainloop:
 	inc r8  #; size (and next value) now changed
 
 	add rax, INPUT+1  #; walk by INPUT (+1, we "inserted" at next position)
-	xor rdx, rdx
-	div r8
-	mov rax, rdx    #; modulo current size
-
+checkmod:
+	cmp rax, r8
+	jl nomod
+	sub rax, r8  #; we exceed current size so "mod" that
+	jmp checkmod
+nomod:
 	loop mainloop
 	lea rdi, fmt[rip]
 	#; rsi already has the value
