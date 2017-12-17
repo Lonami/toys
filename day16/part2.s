@@ -72,6 +72,66 @@ ri_nextiter:
 	ret
 
 
+#; rsi -> base of [input], will increase
+#; rbx -> base of [programs]
+#; uses rax, rcx, rdx, r8
+dance:
+	xor rax, rax  #; cleanup high parts
+	xor rdx, rdx
+d_loop:
+	lodsb
+	cmp al, 's'
+	je d_spin
+	cmp al, 'x'
+	je d_exchange
+	cmp al, 'p'
+	je d_partner
+	ret  #; we reached a '\0'
+d_partner:
+	lodsb
+	lea rdi, programs[rip]
+	mov rcx, N
+	repne scasb
+	mov r8, rdi  #; first partner pos in r8
+	lodsb
+	lea rdi, programs[rip]
+	mov rcx, N
+	repne scasb  #; second partner pos in rdi
+	#; xcgh -1[rdi], -1[r8], as it overshoots
+	mov cl, -1[rdi]
+	xchg -1[r8], cl
+	mov -1[rdi], cl
+	jmp d_loop
+d_spin:
+	lodsb
+	mov r8, rsi  #; save rsi in r8 temporarily
+	lea rsi, programs+N[rip]
+	sub rsi, rax
+	lea rdi, tmparray[rip]
+	mov rcx, rax
+	rep movsb
+	lea rsi, programs[rip]
+	mov rcx, N
+	sub rcx, rax
+	rep movsb
+	#; now copy back tmparray -> programs
+	lea rsi, tmparray[rip]
+	lea rdi, programs[rip]
+	mov rcx, N
+	rep movsb
+	mov rsi, r8  #; restore r8
+	jmp d_loop
+d_exchange:
+	lodsb
+	mov dl, al
+	lodsb
+	mov cl, [rbx+rax]
+	xchg [rbx+rdx], cl
+	mov [rbx+rax], cl
+	jmp d_loop
+	#; ret is above
+
+
 main:
 	push rbx
 	push r12
@@ -81,161 +141,43 @@ main:
 
 	#; now our 'input' is parsed so we don't have to call getchar/scanf.
 	#; we will also be using 'lodsb' that is equivalent to 'al = [rsi++]'
+	#; r9 will count how many dances were taken before returning to original
+	xor r9, r9
 	lea rbx, programs[rip]
-	#; r8 will count how many dances were taken before returning to original
-	xor r8, r8
-mainloop:
+findrepeat:
 	#; first cleanup the high parts of rax/rdx, and setup the programs base
-	xor rax, rax
-	xor rdx, rdx
-
-	#; restart our input moving pointer
-	inc r8
+	inc r9
 	lea rsi, input[rip]
-
-	danceloop:
-		lodsb
-		cmp al, 's'
-		je spin
-		cmp al, 'x'
-		je exchange
-		cmp al, 'p'
-		je partner
-		#; we reached a '\0'
-		jmp checkstate
-
-	partner:
-		lodsb
-		lea rdi, programs[rip]
-		mov rcx, N
-		repne scasb
-		mov r12, rdi  #; first partner pos in r12
-		lodsb
-		lea rdi, programs[rip]
-		mov rcx, N
-		repne scasb  #; second partner pos in rdi
-		#; xcgh -1[rdi], -1[r12], as it overshoots
-		mov cl, -1[rdi]
-		xchg -1[r12], cl
-		mov -1[rdi], cl
-		jmp danceloop
-	spin:
-		lodsb
-		mov r12, rsi  #; save rsi in r12 temporarily
-		lea rsi, programs+N[rip]
-		sub rsi, rax
-		lea rdi, tmparray[rip]
-		mov rcx, rax
-		rep movsb
-		lea rsi, programs[rip]
-		mov rcx, N
-		sub rcx, rax
-		rep movsb
-
-		lea rsi, tmparray[rip]
-		lea rdi, programs[rip]
-		mov rcx, N
-		rep movsb
-		mov rsi, r12  #; restore r12
-		jmp danceloop
-	exchange:
-		lodsb
-		mov dl, al
-		lodsb
-		mov cl, [rbx+rax]
-		xchg [rbx+rdx], cl
-		mov [rbx+rax], cl
-		jmp danceloop
-
+	call dance
 checkstate:
 	#; check if we've gotten back to 'abcd...'. if we have we can
 	#; use some modular math to only do up to there (thanks udf!)
 	mov rcx, N-1
 	lea rsi, programs[rip]
 	lea rdi, programs+1[rip]
-cs_loop:
+checkloop:
 	mov ah, [rsi]
 	mov al, [rdi]
 	sub al, ah
 	cmp al, 1
-	jne mainloop  #; some difference wasn't 1, so they're unordered, next iter
+	jne findrepeat  #; some difference wasn't 1, so they're unordered
 	inc rsi
 	inc rdi
-	loop cs_loop
+	loop checkloop
 
 foundstart:
-	#; r8 now contains the number of iterations we need to take, yay!
-	#; now we only need to do TIMES % r8, and modulo will be amount of
+	#; r9 now contains the number of iterations we need to take, yay!
+	#; now we only need to do TIMES % r9, and modulo will be amount of
 	#; times to run this
 	xor rdx, rdx
 	mov rax, TIMES
-	div r8
-	mov r8, rdx
-
-	#; TODO don't duplicate code this much
-	#; first cleanup the high parts of rax/rdx, and setup the programs base
-	xor rax, rax
-	xor rdx, rdx
-mainloop2:
-	#; restart our input moving pointer
+	div r9
+	mov r9, rdx
+danceloop:
 	lea rsi, input[rip]
-
-	danceloop2:
-		lodsb
-		cmp al, 's'
-		je spin2
-		cmp al, 'x'
-		je exchange2
-		cmp al, 'p'
-		je partner2
-		#; we reached a '\0'
-		dec r8
-		jz done
-		jmp mainloop2
-
-	partner2:
-		lodsb
-		lea rdi, programs[rip]
-		mov rcx, N
-		repne scasb
-		mov r12, rdi  #; first partner pos in r12
-		lodsb
-		lea rdi, programs[rip]
-		mov rcx, N
-		repne scasb  #; second partner pos in rdi
-		#; xcgh -1[rdi], -1[r12], as it overshoots
-		mov cl, -1[rdi]
-		xchg -1[r12], cl
-		mov -1[rdi], cl
-		jmp danceloop2
-	spin2:
-		lodsb
-		mov r12, rsi  #; save rsi in r12 temporarily
-		lea rsi, programs+N[rip]
-		sub rsi, rax
-		lea rdi, tmparray[rip]
-		mov rcx, rax
-		rep movsb
-		lea rsi, programs[rip]
-		mov rcx, N
-		sub rcx, rax
-		rep movsb
-
-		lea rsi, tmparray[rip]
-		lea rdi, programs[rip]
-		mov rcx, N
-		rep movsb
-		mov rsi, r12  #; restore r12
-		jmp danceloop2
-	exchange2:
-		lodsb
-		mov dl, al
-		lodsb
-		mov cl, [rbx+rax]
-		xchg [rbx+rdx], cl
-		mov [rbx+rax], cl
-		jmp danceloop2
-
+	call dance
+	dec r9
+	jnz danceloop
 
 done:
 	xor r12, r12
