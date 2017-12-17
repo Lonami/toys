@@ -15,15 +15,12 @@ main:
 	mov rcx, SIZE-1  #; rcx holds total iterations to do
 	mov rsi, 1  #; r10 holds the latest number inserted at position 1
 mainloop:
-	#; new position is the POSITION at which we just inserted
-	#; so we just increment one, insert there, and that's our pos
 	test rax, rax
 	cmovz rsi, r8  #; rax = 0 (which doesn't move) -> insert at 1, new val!
-	inc rax  #; we "insert" at the next position
 	#; no need to actually insert anything though, just, this is our pos
 	inc r8  #; size (and next value) now changed
 
-	add rax, INPUT  #; walk by INPUT
+	add rax, INPUT+1  #; walk by INPUT (+1, we "inserted" at next position)
 	xor rdx, rdx
 	div r8
 	mov rax, rdx    #; modulo current size
