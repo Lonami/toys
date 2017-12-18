@@ -1,10 +1,11 @@
 .intel_syntax noprefix
 
 .data
-	.set NREG, 32       #; number of registers
-	.set MAXP, 2048     #; max program length
-	regs: .zero NREG*8  #; NREG 8 bytes-long registers
-	prog: .zero MAXP    #; program is 1 byte instruction|1 byte reg[|4 value]
+	.set ISIZE, 10        #; instruction size
+	.set NREG, 32         #; number of registers available
+	.set MAXP, 100*ISIZE  #; max program length (in total size)
+	regs: .zero NREG*8    #; NREG 8 bytes-long registers
+	prog: .zero MAXP      #; program is 1b instruction|1b reg[|4b value]
 
 	invalidop: .string "INVALID OPERATION AT POSITION %ld.\n"
 
@@ -15,12 +16,12 @@
 	#; instruction set
 	#; 0: (halt program)
 	#; 1: snd <reg>
-	#; 2: set <reg> <val>
-	#; 3: add <reg> <val>
-	#; 4: mul <reg> <val>
-	#; 5: mod <reg> <val>
+	#; 2: set <reg> <reg|val>
+	#; 3: add <reg> <reg|val>
+	#; 4: mul <reg> <reg|val>
+	#; 5: mod <reg> <reg|val>
 	#; 6: rcv <reg>
-	#; 7: jgz <reg> <val>
+	#; 7: jgz <reg> <reg|val>
 	.set OP_SND, 1
 	.set OP_SET, 2
 	.set OP_ADD, 3
@@ -29,6 +30,10 @@
 	.set OP_RCV, 6
 	.set OP_JGZ, 7
 	.set OP_OUTBOUNDS, 8
+
+	#; set this flag on the operand if 2nd is a value
+	.set FLAG_VAL, 64
+	.set OP_MASK, 255-FLAG_VAL
 
 .text
 	.global main
@@ -41,7 +46,7 @@ readprog:
 rp_loop:
 	call getchar@PLT
 	cmp al, '\n'
-	je rp_done
+	jle rp_done  #; may also be -1 for end
 	cmp al, 's'
 	je rp_sop
 	cmp al, 'a'
@@ -113,7 +118,7 @@ rp_savereg:  #; reads reg, newline; rbx += 2
 	call getchar@PLT  #; reg
 	sub al, 'a'
 	mov 1[rbx], al
-	add rbx, 2
+	add rbx, 10
 	call getchar@PLT
 	jmp rp_loop
 rp_saveregint:  #; reads reg, val, newline; rbx += 10
@@ -124,8 +129,19 @@ rp_saveregint:  #; reads reg, val, newline; rbx += 10
 	lea rsi, tempn[rip]
 	xor rax, rax
 	call scanf@PLT
-	mov rax, tempn[rip]
-	mov 2[rbx], rax
+	test rax, rax
+	jz rp_saveregreg  #; if scanf returns 0, wasn't int, so another reg
+		#; reg int
+		or byte ptr 0[rbx], FLAG_VAL  #; non-zero means read int -> flag
+		mov rax, tempn[rip]
+		mov 2[rbx], rax
+		jmp rp_saveregintdone
+	rp_saveregreg:
+		#; reg reg
+		call getchar@PLT
+		sub al, 'a'
+		mov 2[rbx], al
+	rp_saveregintdone:
 	add rbx, 10
 	call getchar@PLT
 	jmp rp_loop
@@ -223,12 +239,12 @@ ep_halt:
 
 main:
 	call readprog
-	call executeprogram
-
-	lea rdi, fmt[rip]
-	mov rsi, rax
-	xor rax, rax
-	call printf@PLT
+	#;call executeprogram
+	#;
+	#;lea rdi, fmt[rip]
+	#;mov rsi, rax
+	#;xor rax, rax
+	#;call printf@PLT
 
 	xor rax, rax
 	ret
