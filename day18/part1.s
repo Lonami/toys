@@ -160,6 +160,7 @@ rp_done:
 #; executes the program in [prog]
 #; returns in rax the latest sound played
 executeprogram:
+	lea rcx, ep_jumptable[rip]  #; base of jump table doesn't change
 	lea rsi, prog[rip]
 	lea rdi, regs[rip]
 	xor r10, r10	#; latest sound sent
@@ -181,9 +182,8 @@ ep_loaddone:
 	cmp al, OP_OUTBOUNDS
 	jge ep_halt
 ep_validop:
-	lea rdx, ep_jumptable[rip]  #; base of jump table
-	movsx rax, dword ptr [rdx+rax*4]  #; offset value
-	add rax, rdx  #; add base to the offset value
+	movsx rax, dword ptr [rcx+rax*4]  #; offset value
+	add rax, rcx  #; add base to the offset value
 	jmp rax  #; jump to it
 	.section	.rodata
 	.align 4
