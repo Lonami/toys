@@ -160,14 +160,23 @@ rp_done:
 #; executes the program in [prog]
 #; returns in rax the latest sound played
 executeprogram:
-	#; reminder: 'lodsb' is equivalent to 'al = [rsi++]'
 	lea rsi, prog[rip]
 	lea rdi, regs[rip]
-	xor r8, r8    #; latest sound sent
-	xor rcx, rcx  #; temporary data
+	xor r10, r10	#; latest sound sent
 ep_loop:
-	xor rax, rax  #; read values
-	lodsb
+	movzx rax, byte ptr 0[rsi]  #; save op in al
+	movzx r8,  byte ptr 1[rsi]  #; save dst in r8
+	test al, FLAG_VAL
+	jz ep_loadreg  #; no flag val, then load a register
+ep_loadval:
+	mov r9, 2[rsi]     #; save src immediate value in r9
+	jmp ep_loaddone
+ep_loadreg:
+	movzx rdx, byte ptr 2[rsi]
+	mov r9, [rdi+rdx]  #; save src value from reg  in r9
+ep_loaddone:
+	add rsi, ISIZE  #; next operation
+	and al, OP_MASK  #; remove the flags
 	cmp al, OP_OUTBOUNDS
 	jge ep_halt
 	lea rdx, ep_jumptable[rip]  #; base of jump table
@@ -188,63 +197,49 @@ ep_jumptable:
 	.text
 
 ep_esnd:
-	lodsb
-	mov r8, [rdi+rax]  #; send sound
+	mov r10, [rdi+r8]  #; send sound
 	jmp ep_loop
 ep_eset:
-	lodsb
-	mov cl, al
-	lodsq
-	mov [rdi+rcx], rax
+	mov [rdi+r8], r9
 	jmp ep_loop
 ep_eadd:
-	lodsb
-	mov cl, al
-	lodsq
-	add [rdi+rcx], rax
+	add [rdi+r8], r9
 	jmp ep_loop
 ep_emul:
-	lodsb
-	mov cl, al
-	lodsq
-	mov rdx, [rdi+rcx]
-	imul rdx, rax
-	mov [rdi+rcx], rdx
+	mov rax, [rdi+r8]
+	imul rax, r9
+	mov [rdi+r8], rax
 	jmp ep_loop
 ep_emod:
-	lodsb
-	mov cl, al
-	lodsq
+	mov rax, [rdi+r8]
 	xor rdx, rdx
-	idiv qword ptr [rdi+rcx]
-	mov [rdi+rcx], rdx
+	idiv r9
+	mov [rdi+r8], rdx
 	jmp ep_loop
 ep_ercv:
-	lodsb
-	cmp qword ptr [rdi+rax], 0
+	cmp qword ptr [rdi+r8], 0
 	jne ep_halt  #; recover last sound if reg <> 0
 	jmp ep_loop
 ep_ejgz:
-	lodsb
-	mov cl, al
-	lodsq
-	cmp qword ptr [rdi+rcx], 0
+	cmp qword ptr [rdi+r8], 0
 	jle ep_loop  #; jump only if greater than zero
-	#; TODO jump.. with variable length encoding.. ouch
+	imul r9, ISIZE
+	sub rsi, ISIZE  #; back to current instruction first
+	add rsi, r9  #; now jump
 	jmp ep_loop
 ep_halt:
-	mov rax, r8
+	mov rax, r10
 	ret
 
 
 main:
 	call readprog
-	#;call executeprogram
-	#;
-	#;lea rdi, fmt[rip]
-	#;mov rsi, rax
-	#;xor rax, rax
-	#;call printf@PLT
+	call executeprogram
+
+	lea rdi, fmt[rip]
+	mov rsi, rax
+	xor rax, rax
+	call printf@PLT
 
 	xor rax, rax
 	ret
