@@ -166,19 +166,21 @@ executeprogram:
 ep_loop:
 	movzx rax, byte ptr 0[rsi]  #; save op in al
 	movzx r8,  byte ptr 1[rsi]  #; save dst in r8
+	shl r8, 3  #; and remember they occupy 8 bytes :)
 	test al, FLAG_VAL
 	jz ep_loadreg  #; no flag val, then load a register
 ep_loadval:
-	mov r9, 2[rsi]     #; save src immediate value in r9
+	mov r9, 2[rsi]      #; save src immediate value in r9
 	jmp ep_loaddone
 ep_loadreg:
 	movzx rdx, byte ptr 2[rsi]
-	mov r9, [rdi+rdx]  #; save src value from reg  in r9
+	mov r9, [rdi+rdx*8]  #; save src value from reg in r9
 ep_loaddone:
 	add rsi, ISIZE  #; next operation
 	and al, OP_MASK  #; remove the flags
 	cmp al, OP_OUTBOUNDS
 	jge ep_halt
+ep_validop:
 	lea rdx, ep_jumptable[rip]  #; base of jump table
 	movsx rax, dword ptr [rdx+rax*4]  #; offset value
 	add rax, rdx  #; add base to the offset value
@@ -233,6 +235,10 @@ ep_halt:
 
 
 main:
+	#; dprintf ep_loop, " \t-> %ld\n", *($rdi+$r8)
+	#; ignore 1 1
+	#; dprintf ep_validop, "%c [= %ld] (%s) %ld", ($r8/8)+'a', *($rdi+$r8), ((char**)({"nop","snd","set","add","mul","mod","rcv","jgz"})[$al]), $r9
+
 	call readprog
 	call executeprogram
 
