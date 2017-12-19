@@ -3,7 +3,8 @@
 .data
 	.set DIMENSIONS, 256
 	maze: .zero DIMENSIONS*DIMENSIONS
-	found: .zero 32
+
+	fmt: .string "%ld\n"
 
 	.set EXIT, ' '
 	.set VERTICAL, '|'
@@ -46,17 +47,12 @@ rm_done:
 	ret
 
 
-#; saves found letters in rdi
-#; walks the maze starting at rsi
+#; walks the maze starting at rdi
+#; in rax returns steps walked
 walkmaze:
-	mov rdx, rdi  #; temporary
-	#; first find where we need to start
 	mov al, VERTICAL
-	mov rdi, rsi
 	repne scasb
 	dec rdi  #; it overshoots
-	mov rsi, rdi   #; rsi = actual pointer to the maze
-	mov rdi, rdx   #; (restore)
 	mov dl, SOUTH  #; dl will contain our direction
 	xor rcx, rcx
 wm_loop:
@@ -69,20 +65,20 @@ wm_loop:
 	#;test dl, WEST
 	#;jnz wm_walkwest
 wm_walkwest:
-	dec rsi
+	dec rdi
 	jmp wm_walkdone
 wm_walknorth:
-	sub rsi, DIMENSIONS
+	sub rdi, DIMENSIONS
 	jmp wm_walkdone
 wm_walkeast:
-	inc rsi
+	inc rdi
 	jmp wm_walkdone
 wm_walksouth:
-	add rsi, DIMENSIONS
+	add rdi, DIMENSIONS
 wm_walkdone:
 	#; we have taken a step, now check the current character
-	mov al, [rsi]
 	inc rcx
+	mov al, [rdi]
 	cmp al, EXIT
 	je wm_done
 	cmp al, VERTICAL
@@ -90,9 +86,7 @@ wm_walkdone:
 	cmp al, HORIZONT
 	je wm_loop
 	cmp al, TURN
-	je wm_turn
-	stosb  #; save any other letter
-	jmp wm_loop
+	jne wm_loop  #; ignore letters
 wm_turn:
 	#; determine whether to turn left/right or up/down to a non-exit
 	test dl, NORTH
@@ -100,18 +94,19 @@ wm_turn:
 	test dl, SOUTH
 	jnz wm_turnlr
 wm_turnud:
-    mov dl, NORTH
-	cmp byte ptr -DIMENSIONS[rsi], EXIT
-    jne wm_loop
-    mov dl, SOUTH  #; if it's not up then it's down
+	mov dl, NORTH
+	cmp byte ptr -DIMENSIONS[rdi], EXIT
+	jne wm_loop
+	mov dl, SOUTH  #; if it's not up then it's down
 	jmp wm_loop
 wm_turnlr:
-    mov dl, WEST
-	cmp byte ptr -1[rsi], EXIT
-    jne wm_loop
+	mov dl, WEST
+	cmp byte ptr -1[rdi], EXIT
+	jne wm_loop
 	mov dl, EAST  #; if it's not left then it's right
 	jmp wm_loop
 wm_done:
+	mov rax, rcx
 	ret
 
 
@@ -119,12 +114,13 @@ main:
 	lea rdi, maze[rip]
 	call readmaze
 
-	lea rdi, found[rip]
-	lea rsi, maze[rip]
+	lea rdi, maze[rip]
 	call walkmaze
 
-    lea rdi, found[rip]
-    call puts@PLT
+	lea rdi, fmt[rip]
+	mov rsi, rax
+	xor rax, rax
+	call printf@PLT
 
 	xor rax, rax
 	ret
