@@ -98,15 +98,15 @@ wm_turn:
 	test dl, SOUTH
 	jnz wm_turnlr
 wm_turnud:
-    mov dl, NORTH
+	mov dl, NORTH
 	cmp byte ptr -DIMENSIONS[rsi], EXIT
-    jne wm_loop
-    mov dl, SOUTH  #; if it's not up then it's down
+	jne wm_loop
+	mov dl, SOUTH  #; if it's not up then it's down
 	jmp wm_loop
 wm_turnlr:
-    mov dl, WEST
+	mov dl, WEST
 	cmp byte ptr -1[rsi], EXIT
-    jne wm_loop
+	jne wm_loop
 	mov dl, EAST  #; if it's not left then it's right
 	jmp wm_loop
 wm_done:
@@ -121,8 +121,8 @@ main:
 	lea rsi, maze[rip]
 	call walkmaze
 
-    lea rdi, found[rip]
-    call puts@PLT
+	lea rdi, found[rip]
+	call puts@PLT
 
 	xor rax, rax
 	ret
