@@ -29,6 +29,8 @@
 	#; 5: mod <reg> <reg|val>
 	#; 6: rcv <reg>
 	#; 7: jgz <reg> <reg|val>
+	#; 8: jmp       <reg|val>
+	#; 9: nop
 	.set OP_SND, 1
 	.set OP_SET, 2
 	.set OP_ADD, 3
@@ -36,7 +38,9 @@
 	.set OP_MOD, 5
 	.set OP_RCV, 6
 	.set OP_JGZ, 7
-	.set OP_OUTBOUNDS, 8
+	.set OP_JMP, 8  #; jgz (>  0) <reg|val>
+	.set OP_NOP, 9  #; jgz (<= 0) <reg|val>
+	.set OP_OUTBOUNDS, 10
 
 	#; set this flag on the operand if 2nd is a value
 	.set FLAG_VAL, 64
@@ -119,7 +123,19 @@ rp_jop:
 	call getchar@PLT  #; 'g'
 	call getchar@PLT  #; 'z'
 	call getchar@PLT  #; ' '
-	jmp rp_saveregint
+	#; jump is a bit special case as first operand can be a value
+	#; if this is the case we need to determine whether it's jmp/nop
+	call getchar@PLT
+	cmp al, 'a'
+	jge rp_dosaveregint
+	cmp al, '0'  #; <= '0' means '0' or '-'
+	jg rp_jmpop
+rp_nopop:
+	mov byte ptr [rbx], OP_NOP
+	jmp rp_saveregintdone
+rp_jmpop:
+	mov byte ptr [rbx], OP_JMP
+	jmp rp_dosaveint
 
 rp_savereg:  #; reads reg, newline; rbx += 2
 	call getchar@PLT  #; reg
@@ -130,8 +146,10 @@ rp_savereg:  #; reads reg, newline; rbx += 2
 	jmp rp_loop
 rp_saveregint:  #; reads reg, val, newline; rbx += 10
 	call getchar@PLT  #; reg
+rp_dosaveregint:  #; saves reg
 	sub al, 'a'
 	mov 1[rbx], al
+rp_dosaveint:  #; reads reg|val newline
 	lea rdi, readn[rip]
 	lea rsi, tempn[rip]
 	xor rax, rax
@@ -209,6 +227,8 @@ ep_jumptable:
 	.long ep_emod - ep_jumptable
 	.long ep_ercv - ep_jumptable
 	.long ep_ejgz - ep_jumptable
+	.long ep_ejmp - ep_jumptable
+	.long ep_loop - ep_jumptable  #; nop is just going back to the loop
 	.text
 
 ep_esnd:
@@ -255,6 +275,7 @@ ep_ercv:
 ep_ejgz:
 	cmp qword ptr [rdi+r8], 0
 	jle ep_loop  #; jump only if greater than zero
+ep_ejmp:
 	imul r9, ISIZE
 	sub rsi, ISIZE  #; back to current instruction first
 	add rsi, r9  #; now jump
@@ -309,7 +330,6 @@ callrecvloop:
 	lea rdi, fmt[rip]
 	lea rax, queue0[rip]
 	mov rsi, 8[rax]
-	dec rsi
 	xor rax, rax
 	call printf@PLT
 
