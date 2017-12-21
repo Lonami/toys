@@ -11,7 +11,9 @@
 	rules2: .space MAXR2*13, -1  #; 2*2 + 3*3 = 4 +  9
 	rules3: .space MAXR3*25, -1  #; 3*3 + 4*4 = 9 + 16
 
-	board: .zero N*N
+	#; swap between board1 and board2 not to overwrite while applying rules
+	board1: .zero N*N
+	board2: .zero N*N
 
 .text
 	.global main
@@ -88,9 +90,8 @@ rr_done:
 
 #; rdi -> [rules2] base
 #; rsi -> [top left corner] base
-#; rax <- index of the matching rule, or -1
+#; rax <- memory location of the matching rule
 findmatch2:
-	xor rax, rax  #; index of the matching rule
 	#; load the pattern from rsi as follows:
 	#;  cl ch
 	#;  dl dh
@@ -180,21 +181,20 @@ fm2_checkrot270:
 	jne fm2_fail
 	jmp fm2_done
 fm2_fail:
-	inc rax
 	add rdi, 25
 	cmp byte ptr [rdi], -1
 	jne fm2_loop
 fm2_finalfail:
-	mov rax, -1
+	xor rdi, rdi
 fm2_done:
+	mov rax, rdi
 	ret
 
 
 #; rdi -> [rules3] base
 #; rsi -> [top left corner] base
-#; rax <- index of the matching rule, or -1
+#; rax <- memory location of the matching rule
 findmatch3:
-	xor r11, r11  #; index of the matching rule
 	#; load the pattern from rsi as follows:
 	#;  al  ah   cl
 	#;  ch  dl   dh
@@ -370,18 +370,156 @@ fm3_checkrot270:
 	jne fm3_fail
 	jmp fm3_done
 fm3_fail:
-	inc r11
 	add rdi, 25
 	cmp byte ptr [rdi], -1
 	jne fm3_loop
 fm3_finalfail:
-	mov r11, -1
+	xor rdi, rdi
 fm3_done:
-	mov rax, r11
+	mov rax, rdi
 	ret
 
+
+#; increases the board at rsi by 1 into rdi
+#; rdi -> [dstboard] base
+#; rsi -> [srcboard] base
+#; rdx -> number of items
+applyrule:
+	push rbp
+	mov rbp, rsp
+	sub rsp, 16
+	#; ^ two local variables to keep track of src/dst board begin of row
+
+	push rbx  #; size divided by 2 or 3
+	push r12  #; outer loop index
+	push r13  #; inner loop index
+	push r14  #; -> srcboard, while in inner loop
+	push r15  #; -> dstboard, while in inner loop
+
+	mov [rbp-8], rsi
+	mov [rbp-16], rdi
+	test rdx, 1
+	jnz ar_by3
+
+ar_by2:
+	mov rbx, rdx
+	shr rbx
+	mov r12, rbx
+ar_by2outloop:
+	mov r14, [rbp-8]
+	mov r15, [rbp-16]
+	mov r13, rbx
+	ar_by2inloop:
+		lea rdi, rules2[rip]
+		mov rsi, r14
+		call findmatch2
+		#; rax <- base of the match, need +4 because skip 2x2 from rule itself
+		#; row1
+		mov dl, 4[rax]
+		mov 0[r15], dl
+		mov dl, 5[rax]
+		mov 1[r15], dl
+		mov dl, 6[rax]
+		mov 2[r15], dl
+		#; row2
+		mov dl, 7[rax]
+		mov N+0[r15], dl
+		mov dl, 8[rax]
+		mov N+1[r15], dl
+		mov dl, 9[rax]
+		mov N+2[r15], dl
+		#; row3
+		mov dl, 10[rax]
+		mov 2*N+0[r15], dl
+		mov dl, 11[rax]
+		mov 2*N+1[r15], dl
+		mov dl, 12[rax]
+		mov 2*N+2[r15], dl
+		#; row copied, next column
+		add r14, 2
+		add r15, 3
+		dec r13
+		jnz ar_by2inloop
+	add qword ptr [rbp-8], N
+	add qword ptr [rbp-16], N
+	dec r12
+	jnz ar_by2outloop
+	jmp ar_done
+
+ar_by3:
+	mov rax, rdx
+	xor rdx, rdx
+	mov rcx, 3
+	div rcx
+	mov rbx, rax
+	mov r12, rbx
+ar_by3outloop:
+	mov r14, [rbp-8]
+	mov r15, [rbp-16]
+	mov r13, rbx
+	ar_by3inloop:
+		lea rdi, rules3[rip]
+		mov rsi, r14
+		call findmatch3
+		#; rax <- base of the match, need +9 because skip 3x3 from rule itself
+		#; row1
+		mov dl,  9[rax]
+		mov 0[r15], dl
+		mov dl, 10[rax]
+		mov 1[r15], dl
+		mov dl, 11[rax]
+		mov 2[r15], dl
+		mov dl, 12[rax]
+		mov 3[r15], dl
+		#; row2
+		mov dl, 13[rax]
+		mov N+0[r15], dl
+		mov dl, 14[rax]
+		mov N+1[r15], dl
+		mov dl, 15[rax]
+		mov N+2[r15], dl
+		mov dl, 16[rax]
+		mov N+3[r15], dl
+		#; row3
+		mov dl, 17[rax]
+		mov 2*N+0[r15], dl
+		mov dl, 18[rax]
+		mov 2*N+1[r15], dl
+		mov dl, 19[rax]
+		mov 2*N+2[r15], dl
+		mov dl, 20[rax]
+		mov 2*N+3[r15], dl
+		#; row4
+		mov dl, 21[rax]
+		mov 3*N+0[r15], dl
+		mov dl, 22[rax]
+		mov 3*N+1[r15], dl
+		mov dl, 23[rax]
+		mov 3*N+2[r15], dl
+		mov dl, 24[rax]
+		mov 3*N+3[r15], dl
+		#; row copied, next column
+		add r14, 3
+		add r15, 4
+		dec r13
+		jnz ar_by3inloop
+	add qword ptr [rbp-8], N
+	add qword ptr [rbp-16], N
+	dec r12
+	jnz ar_by3outloop
+
+ar_done:
+	pop r15
+	pop r14
+	pop r13
+	pop r12
+	pop rbx
+	leave
+	ret
+
+
 main:
-	lea rdi, board[rip]
+	lea rdi, board1[rip]
 	#; -> .#.
 	mov byte ptr     0[rdi], 0
 	mov byte ptr     1[rdi], 1
@@ -399,14 +537,10 @@ main:
 	lea rsi, rules3[rip]
 	call readrules
 
-	lea rdi, rules3[rip]
-	lea rsi, board[rip]
-	call findmatch3
-
-	lea rdi, fmt[rip]
-	mov rsi, rax
-	xor rax, rax
-	call printf@PLT
+	lea rsi, board1[rip]
+	lea rdi, board2[rip]
+	mov rdx, 3
+	call applyrule
 
 	xor rax, rax
 	ret
