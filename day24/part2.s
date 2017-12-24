@@ -127,6 +127,7 @@ pb_done:
 main:
 	call readdata
 	xor dx, dx
+	xor cx, cx
 	call placebridge
 
 	lea rdi, fmt[rip]
