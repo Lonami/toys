@@ -63,34 +63,45 @@ gs_noscore:
 	ret
 
 
-#; dl -> bridge to match to
+#; dx -> bridge values that can match to
 placebridge:
 	push rbx
 	push r12
 	push r13
-	lea r12, bridges[rip]  #; r12 = bridges base
-	lea r13, used[rip]  #; r13 = used base
-	mov bl, dl  #; bl = target
-	xor bh, bh  #; bh = flag (any valid)
+	push r14
+	lea r12, bridges[rip]  #; r12 = bridges pointer
+	lea r13, used[rip]  #; r13 = used pointer
+	xor r14b, r14b  #; r14b = any valid
+	mov bx, dx  #; bl, bh = left, right
 pb_searchloop:
-	cmp byte ptr 0[r12], bl
-	jne pb_nextiter  #; not the one we want
 	test byte ptr [r13], 0xff
 	jnz pb_nextiter  #; in use
-	mov bh, 1  #; valid bridge!
+	mov ax, [r12]  #; load two bytes at once
+	mov dx, ax  #; on dx, set to "-1" the bits that were used
+	mov dl, -1
+	cmp al, bl
+	je pb_validbridge
+	cmp al, bh
+	je pb_validbridge
+	mov dl, al  #; dl isn't used, restore, try dh
+	mov dh, -1
+	cmp ah, bl
+	je pb_validbridge
+	cmp ah, bh
+	je pb_validbridge
+	jmp pb_nextiter  #; not the one we want
+pb_validbridge:
+	mov r14b, 1  #; valid bridge!
 	mov byte ptr [r13], 1
-	mov dl, byte ptr 1[r12]
-	call placebridge
+	call placebridge  #; dx already has what to match
 	mov byte ptr [r13], 0
 pb_nextiter:
 	add r12, 2
 	add r13, 1
-	mov al, 0[r12]
-	nop
 	cmp byte ptr 0[r12], -1
 	jne pb_searchloop
 	#; all done, check if better score was achieved
-	test bh, bh
+	test r14b, r14b
 	jnz pb_done
 	call getscore
 	lea rdi, best[rip]
@@ -98,6 +109,7 @@ pb_nextiter:
 	jle pb_done
 	mov [rdi], rax
 pb_done:
+	pop r14
 	pop r13
 	pop r12
 	pop rbx
@@ -105,7 +117,7 @@ pb_done:
 
 main:
 	call readdata
-	mov dl, 0
+	xor dx, dx
 	call placebridge
 
 	lea rdi, fmt[rip]
