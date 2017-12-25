@@ -7,3 +7,12 @@ following command to generate a pretty view of the problem definitions:
 ```
 pandoc -s dayX/README.md -c aoc.css -o out.html
 ```
+
+## What's missing?
+* `day07/part2.s`
+* `day20/part2.s`
+* `day21/part1.s`
+* `day21/part2.s`
+* `day22/part1.s`
+* `day22/part2.s`
+* Second part of the 25th day until the previous are done.
