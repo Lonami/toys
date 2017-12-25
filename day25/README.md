@@ -94,3 +94,21 @@ the Turing machine should pause; once it does, count the number of times
 
 Recreate the Turing machine and save the computer! **What is the diagnostic
 checksum** it produces once it's working again?
+
+
+Part Two
+--------
+
+The Turing machine, and soon the entire computer, springs back to life.
+A console glows dimly nearby, awaiting your command.
+
+<pre>&gt; reboot printer
+Error: That command requires <strong>priority 50</strong>. You currently have <strong>priority 0</strong>.
+You must deposit <em>50 stars</em> to increase your priority to the required level.</pre>
+
+The console flickers for a moment, and then prints another message:
+
+<pre><em>Star</em> accepted.
+You must deposit <em>49 stars</em> to increase your priority to the required level.</pre>
+
+The **garbage collector** winks at you, then continues sweeping.
