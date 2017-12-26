@@ -10,17 +10,15 @@
     points: .zero MAXPOINTS*9*8
 
 .text
-	.global main
+    .global main
 
 
-#; rdi -> [points] base
 readinput:
     push rbx
     push r12
     mov rbx, rdi
     xor r12, r12
 ri_loop:
-    inc r12
     lea rdi, pointfmt[rip]
     lea rsi, pointread   [rip]
     lea rdx, pointread+ 8[rip]
@@ -38,16 +36,16 @@ ri_loop:
     xor rax, rax
     call scanf@PLT
     add rsp, 32
-
+    cmp rax, 9
+    jne ri_done
+    inc r12
     mov rcx, 9
     lea rsi, pointread[rip]
     mov rdi, rbx
     rep movsq
     mov rbx, rdi
-
-    cmp rax, 9
-    je ri_loop
-
+    jmp ri_loop
+ri_done:
     mov rax, r12
     pop r12
     pop rbx
@@ -136,5 +134,5 @@ searchnext:
 
     pop r13
     pop r12
-	xor rax, rax
-	ret
+    xor rax, rax
+    ret
