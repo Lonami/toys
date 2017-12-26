@@ -10,7 +10,6 @@ pandoc -s dayX/README.md -c aoc.css -o out.html
 
 ## What's missing?
 * `day07/part2.s`
-* `day20/part2.s`
 * `day21/part1.s`
 * `day21/part2.s`
 * `day22/part1.s`
