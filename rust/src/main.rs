@@ -14,6 +14,7 @@ mod problem012;
 mod problem013;
 mod problem014;
 mod problem015;
+mod problem016;
 
 
 fn main() {
