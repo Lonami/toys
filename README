@@ -19,3 +19,11 @@ Some remarks:
 3. I wasn't very aware of short-circuiting.  Most resolutions
    run forever and don't early terminate. Some have expensive
    checks first, and the cheap ones later.
+
+
+---------------------------------------------------------------
+
+
+The second attempt, this time with Python, was the 12th of July
+2016, and over a week reached problem 67. The code style wasn't
+fully developed yet, but improved.
