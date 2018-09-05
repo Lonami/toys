@@ -206,3 +206,34 @@ impl Iterator for Factors {
         None
     }
 }
+
+// Collatz Sequence
+pub struct Collatz(u64);
+
+impl Collatz {
+    pub fn new(n: u64) -> Self {
+        Self { 0: n }
+    }
+}
+
+impl Iterator for Collatz {
+    type Item = u64;
+
+    fn next(&mut self) -> Option<u64> {
+        match self.0 {
+            0 => None,
+            1 => {
+                self.0 = 0;
+                Some(1)
+            }
+            n if n % 2 == 0 => {
+                self.0 /= 2;
+                Some(n)
+            }
+            n => {
+                self.0 = 3 * self.0 + 1;
+                Some(n)
+            }
+        }
+    }
+}
