@@ -33,7 +33,6 @@ fn solve() {
             Factors::count(i) * Factors::count((i + 1) / 2)
         } > 500).unwrap();
 
-    println!("{}", n);
     let result = n * (n + 1) / 2;
     assert_eq!(result, 76576500);
 }
