@@ -168,12 +168,13 @@ impl Iterator for Triangular {
 // Factors
 pub struct Factors {
     n: u64,
-    i: u64
+    i: u64,
+    pair: Option<u64>
 }
 
 impl Factors {
     pub fn new(n: u64) -> Self {
-        Factors { n, i: 0 }
+        Factors { n, i: 0, pair: None }
     }
 
     pub fn count(n: u64) -> u64 {
@@ -197,9 +198,18 @@ impl Iterator for Factors {
     type Item = u64;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while self.i < self.n {
+        if let Some(p) = self.pair {
+            self.pair = None;
+            return Some(p);
+        }
+
+        while self.i.pow(2) <= self.n {
             self.i += 1;
             if self.n % self.i == 0 {
+                let p = self.n / self.i;
+                if p != self.i {
+                    self.pair = Some(p);
+                }
                 return Some(self.i);
             }
         }
