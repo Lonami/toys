@@ -41,3 +41,11 @@ however the lack of serious  projects make me easily abandon it.
 Now that I know and use git daily,  posting new solutions should
 happen as I solve them  instead just bulk adding all the files I
 had so far.
+
+
+---------------------------------------------------------------
+
+
+Only a resources/ folder is included in the top-level directory.
+You are supposed to copy or symlink this folder from the working
+directory of the code (Python and Rust), since it's .gitignored.
