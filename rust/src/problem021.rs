@@ -16,7 +16,7 @@ use common::Factors;
 
 #[test]
 fn solve() {
-    let d = |n: u64| Factors::new(n).sum::<u64>() - n;
+    let d = Factors::sum;
     let mut amicable = vec![false; 10000];
     let mut result = 0;
     for a in 2..amicable.len() as u64 {

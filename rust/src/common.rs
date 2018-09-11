@@ -192,6 +192,21 @@ impl Factors {
             result
         }
     }
+
+    pub fn sum(n: u64) -> u64 {
+        let mut i = 2;
+        let mut result = 1;
+        while i * i < n {
+            if n % i == 0 {
+                result += i + n / i;
+            }
+            i += 1;
+        }
+        if i * i == n {
+            result += i;
+        }
+        result
+    }
 }
 
 impl Iterator for Factors {
