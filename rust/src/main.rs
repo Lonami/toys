@@ -22,6 +22,7 @@ mod problem020;
 mod problem021;
 mod problem022;
 mod problem023;
+mod problem024;
 
 
 fn main() {
