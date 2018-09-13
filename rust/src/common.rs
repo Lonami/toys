@@ -39,6 +39,49 @@ pub fn is_prime(n: u64) -> bool {
 	}
 }
 
+// Prime Checker
+pub struct PrimeChecker {
+    primes: Vec<u64>
+}
+
+impl PrimeChecker {
+    pub fn new() -> Self {
+        let mut primes = Vec::with_capacity(1024);
+        primes.push(2);
+        primes.push(3);
+        PrimeChecker { primes }
+    }
+
+    pub fn is_prime(&mut self, n: u64) -> bool {
+        match n {
+            n if n < 4 => n >= 2,
+            n if n % 2 == 0 => false,
+            n if ((n - 5) % 6 != 0) && ((n - 7) % 6 != 0) => false,
+            n => {
+                let mut i = 1;
+                loop {
+                    let p = *self.primes.get(i).unwrap();
+                    if p.pow(2) > n {
+                        return true;
+                    }
+                    if n % p == 0 {
+                        return false;
+                    }
+                    i += 1;
+                    if i == self.primes.len() {
+                        let mut p = p + 2;
+                        while !self.is_prime(p) {
+                            p += 2;
+                        }
+                        self.primes.push(p);
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 // Prime Generators
 // TODO Create a new prime seq that uses cached primes
 pub struct PrimeSeq(u64);
