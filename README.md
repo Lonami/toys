@@ -1,14 +1,22 @@
-# AOC 2017
+# Advent Of Code
 
-My attempt at http://adventofcode.com/2017. The `.css` file here is a
+My attempts at http://adventofcode.com. The `.css` file here is a
 hand-crafted version to try to mimic the original site. You can use the
 following command to generate a pretty view of the problem definitions:
 
 ```
-pandoc -s dayX/README.md -c aoc.css -o out.html
+pandoc -s yearYYYY/dayDD/README.md -c aoc.css -o out.html
 ```
 
-## What's missing?
+## Year 2018
+
+Language: [Rust](https://www.rust-lang.org/en-US/).
+
+## Year 2017
+
+Language: [x86-64 Assembly](https://en.wikibooks.org/wiki/X86_Assembly).
+
+Missing days:
 * `day07/part2.s`
 * `day21/part1.s`
 * `day21/part2.s`
