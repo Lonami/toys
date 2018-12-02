@@ -29,6 +29,45 @@ fn part1() -> i32 {
     twos * thrs
 }
 
+fn part2() -> String {
+    let data = BufReader::new(File::open("input").expect("failed to open"))
+        .lines()
+        .map(|x| x.expect("failed to read").into_bytes())
+        .collect::<Vec<Vec<u8>>>();
+
+    let mut besti = 0;
+    let mut bestj = 0;
+    let mut bestv = 0;
+    for i in 0..data.len() {
+        let left = &data[i];
+        for j in (i + 1)..data.len() {
+            let right = &data[j];
+            let mut valid = 0;
+            for k in 0..left.len() {
+                if left[k] == right[k] {
+                    valid += 1;
+                }
+            }
+            if valid > bestv {
+                besti = i;
+                bestj = j;
+                bestv = valid;
+            }
+        }
+    }
+
+    let mut result = String::new();
+    let left = &data[besti];
+    let right = &data[bestj];
+    for i in 0..left.len() {
+        if left[i] == right[i] {
+            result.push(left[i] as char);
+        }
+    }
+    result
+}
+
 fn main() {
     println!("{}", part1());
+    println!("{}", part2());
 }
