@@ -25,7 +25,7 @@ fn parse_line(line: &str) -> Rect {
 }
 
 fn part1() -> i32 {
-    let mut grid = vec![vec![None::<bool>; 1024]; 1024];
+    let mut grid = vec![vec![None::<bool>; 1000]; 1000];
     let data = BufReader::new(File::open("input").expect("failed to open"))
         .lines()
         .map(|x| x.expect("failed to read"))
@@ -52,6 +52,36 @@ fn part1() -> i32 {
         .sum()
 }
 
+fn part2() -> i32 {
+    let mut grid = vec![vec![0usize; 1000]; 1000];
+    let mut clean = Vec::new();
+    let data = BufReader::new(File::open("input").expect("failed to open"))
+        .lines()
+        .map(|x| x.expect("failed to read"))
+        .map(|x| parse_line(&x));
+
+    for rect in data {
+        clean.push(true);
+        for y in rect.y..rect.y + rect.h {
+            for x in rect.x..rect.x + rect.w {
+                if grid[y][x] == 0 {
+                    grid[y][x] = rect.id
+                } else {
+                    clean[grid[y][x] - 1] = false;
+                    clean[rect.id - 1] = false;
+                }
+            }
+        }
+    }
+
+    clean.iter()
+        .enumerate()
+        .find(|(_, x)| **x)
+        .expect("all overlap")
+        .0 as i32 + 1
+}
+
 fn main() {
     println!("{}", part1());
+    println!("{}", part2());
 }
