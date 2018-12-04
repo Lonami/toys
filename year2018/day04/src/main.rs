@@ -113,7 +113,49 @@ fn part1(input: &BTreeMap<Time, Action>) -> i32 {
     id * most_asleep
 }
 
+fn part2(input: &BTreeMap<Time, Action>) -> i32 {
+    let mut asleep = HashMap::new();
+
+    let mut current_id = None;
+    let mut sleep_since = None;
+
+    for (time, action) in input.iter() {
+        match action {
+            Action::Shift(id) => current_id = Some(id),
+            Action::Sleep => sleep_since = Some(time.clone()),
+            Action::Wake => {
+                let id = current_id.expect("no guard shifted in");
+                let ss = sleep_since.clone().expect("woke without sleep");
+
+                let mut minutes = asleep.entry(id).or_insert(vec![0; 60]);
+                let mut i = ss.min;
+                while i != time.min {
+                    minutes[i as usize % 60] += 1;
+                    i += 1;
+                }
+            }
+        }
+    }
+
+    // Should figure out a nicer solution
+    let mut best_id = 0;
+    let mut best_min = 0;
+    let mut best_count = 0;
+    for (&&id, minutes) in asleep.iter() {
+        for (minute, &count) in minutes.iter().enumerate() {
+            if count > best_count {
+                best_id = id;
+                best_min = minute;
+                best_count = count;
+            }
+        }
+    }
+
+    best_id * best_min as i32
+}
+
 fn main() {
     let input = parse_input();
     println!("{}", part1(&input));
+    println!("{}", part2(&input));
 }
