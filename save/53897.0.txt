@@ -1,0 +1,48 @@
+@0
+## NAIVE
+
+@1
+MOV UP DOWN
+
+@2
+
+
+@3
+
+
+@4
+
+
+@5
+MOV UP DOWN
+
+@6
+
+
+@7
+
+
+@8
+MOV UP ACC
+LP: MOV ACC RIGHT
+    SUB 1
+    JNZ LP
+MOV 999 RIGHT
+
+@9
+LP: MOV ACC DOWN
+    MOV 18 ACC
+    SUB LEFT
+    JLZ NX
+    MOV ACC DOWN
+    MOV 3 DOWN
+    MOV -1 DOWN
+    SWP
+    SAV
+    JMP LP
+NX: MOV -1 DOWN
+    SWP
+    ADD 1
+    SAV
+
+@10

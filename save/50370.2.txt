@@ -1,0 +1,49 @@
+@0
+## BRANCHLESS
+
+@1
+
+
+@2
+
+
+@3
+
+
+@4
+
+
+@5
+
+
+@6
+
+
+@7
+
+
+@8
+MOV ACC RIGHT
+ADD 1
+
+@9
+MOV 0 DOWN
+MOV LEFT DOWN
+LP: MOV 3 DOWN
+    MOV 3 DOWN
+    MOV 3 DOWN
+    MOV 3 DOWN
+    MOV 3 DOWN
+    MOV 3 DOWN
+    MOV 3 DOWN
+    MOV 3 DOWN
+    MOV 3 DOWN
+    MOV 3 DOWN
+    MOV 3 DOWN
+    JRO RIGHT
+MOV -1 DOWN
+
+@10
+MOV -11 LEFT
+MOV -8 LEFT
+MOV +1 LEFT

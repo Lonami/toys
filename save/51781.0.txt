@@ -1,0 +1,47 @@
+@0
+## NAIVE
+
+@1
+
+
+@2
+
+
+@3
+
+
+@4
+
+
+@5
+
+
+@6
+
+
+@7
+
+
+@8
+MOV ACC RIGHT
+ADD 1
+
+@9
+MOV 0 DOWN
+MOV LEFT DOWN
+MOV 15 ACC
+JRO RIGHT
+L1: MOV 3 DOWN
+    MOV 0 DOWN
+    SUB 1
+    JNZ L1
+    JMP FL
+L2: MOV 0 DOWN
+    MOV 3 DOWN
+    SUB 1
+    JNZ L2
+FL: MOV -1 DOWN
+
+@10
+MOV 1 LEFT
+MOV 6 LEFT

@@ -1,0 +1,48 @@
+@0
+
+
+@1
+## NAIVE
+MOV UP ACC
+MOV ACC RIGHT
+SUB UP
+NEG
+ADD 1
+MOV ACC RIGHT
+
+@2
+MOV LEFT ACC
+JEZ L2
+L1: SUB 1
+    MOV UP NIL
+    JNZ L1
+L2: MOV LEFT ACC
+L3: MOV UP DOWN
+    SUB 1
+    JGZ L3
+L4: MOV UP ACC
+    JNZ L4
+    MOV ACC DOWN
+
+@3
+
+
+@4
+
+
+@5
+
+
+@6
+MOV UP DOWN
+
+@7
+
+
+@8
+
+
+@9
+MOV UP DOWN
+
+@10

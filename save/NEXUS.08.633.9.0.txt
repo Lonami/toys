@@ -1,0 +1,57 @@
+@0
+## NAIVE
+
+@1
+MOV UP DOWN
+
+@2
+
+
+@3
+
+
+@4
+MOV UP DOWN
+
+@5
+
+
+@6
+
+
+@7
+MOV RIGHT ACC
+LP: SUB 100
+    JLZ DN
+    SWP
+    ADD 1
+    SWP
+    JMP LP
+DN: MOV ACC RIGHT
+    SWP
+    MOV ACC DOWN
+    MOV 0 ACC
+    SAV
+
+@8
+MOV UP LEFT
+MOV 0 ACC
+SAV
+MOV 100 ACC
+ADD LEFT
+LP: SUB 10
+    JLZ DN
+    SWP
+    ADD 1
+    SWP
+    JMP LP
+DN: MOV ACC RIGHT
+    SWP
+    MOV ACC DOWN
+
+@9
+MOV 10 ACC
+ADD LEFT
+MOV ACC DOWN
+
+@10

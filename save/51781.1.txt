@@ -1,0 +1,51 @@
+@0
+## UNROLL
+
+@1
+
+
+@2
+
+
+@3
+
+
+@4
+
+
+@5
+MOV 7 ACC
+LP: MOV -4 DOWN
+    SUB 1
+    JNZ LP
+MOV 999 DOWN
+
+@6
+
+
+@7
+
+
+@8
+MOV ACC RIGHT
+ADD 1
+
+@9
+MOV 0 DOWN
+MOV LEFT DOWN
+JRO RIGHT
+L1: MOV 3 DOWN
+    MOV 0 DOWN
+    MOV 3 DOWN
+    MOV 0 DOWN
+    JRO UP
+L2: MOV 0 DOWN
+    MOV 3 DOWN
+    MOV 0 DOWN
+    MOV 3 DOWN
+    JRO UP
+FL: MOV -1 DOWN
+
+@10
+MOV 1 LEFT
+MOV 6 LEFT
