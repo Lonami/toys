@@ -23,6 +23,33 @@ fn all_fuel_for(value: &i32) -> i32 {
     result
 }
 
+/* Alternatives for the second part
+
+Recursive:
+    fn all_fuel_for(value: &i32) -> i32 {
+        let result = fuel_for(value);
+        if result > 0 {
+            result + all_fuel_for(&result)
+        } else {
+            result
+        }
+    }
+
+Without imperative iteration:
+    fn all_fuel_for(value: &i32) -> i32 {
+        let initial_fuel = fuel_for(value);
+        (0..).scan((initial_fuel, initial_fuel), |state, _| {
+            let next_fuel = fuel_for(&state.1);
+            if next_fuel > 0 {
+                *state = (state.0 + next_fuel, next_fuel);
+                Some(state.0)
+            } else {
+                None
+            }
+        }).last().unwrap_or(0)
+    }
+*/
+
 fn part1(inputs: &Vec<i32>) -> i32 {
     inputs.iter().map(fuel_for).sum::<i32>()
 }
