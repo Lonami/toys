@@ -1,13 +1,11 @@
-use std::env;
-use std::fs::File;
-use std::path::Path;
-use std::io::{prelude::*, BufReader};
+use std::io::{stdin, BufRead};
 
-fn load_inputs<P: AsRef<Path>>(path: P) -> Vec<i32> {
-    BufReader::new(File::open(path).expect("failed to read input file"))
+fn read_inputs() -> Vec<i32> {
+    stdin()
+        .lock()
         .lines()
         .map(|line| line.expect("error while reading input file"))
-        .map(|x| x.parse::<i32>().expect("malformed input"))
+        .map(|line| line.parse::<i32>().expect("malformed input"))
         .collect()
 }
 
@@ -34,7 +32,7 @@ fn part2(inputs: &Vec<i32>) -> i32 {
 }
 
 fn main() {
-    let inputs = load_inputs(env::args().skip(1).next().expect("input file path missing"));
+    let inputs = read_inputs();
     println!("{}", part1(&inputs));
     println!("{}", part2(&inputs));
 }
