@@ -8,9 +8,18 @@ following command to generate a pretty view of the problem definitions:
 pandoc -s yearYYYY/dayDD/README.md -c aoc.css -o out.html
 ```
 
+## Year 2019
+
+Language: [Rust](https://www.rust-lang.org/en-US/).
+
 ## Year 2018
 
 Language: [Rust](https://www.rust-lang.org/en-US/).
+
+Missing days:
+* `day06` and above.
+
+I gave up far too soon. Lack of motivation.
 
 ## Year 2017
 
