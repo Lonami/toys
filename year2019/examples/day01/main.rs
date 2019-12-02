@@ -50,10 +50,12 @@ Without imperative iteration:
     }
 */
 
+// sum(m//3-2 for m in map(int, open('input')))
 fn part1(inputs: &Vec<i32>) -> i32 {
     inputs.iter().map(fuel_for).sum::<i32>()
 }
 
+// sum((lambda f, m: f(f, m))(lambda f, m: 0 if m < 6 else m//3-2+f(f, m//3-2), m) for m in map(int, open('input')))
 fn part2(inputs: &Vec<i32>) -> i32 {
     inputs.iter().map(all_fuel_for).sum::<i32>()
 }
