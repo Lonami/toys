@@ -53,7 +53,6 @@ class AOCParser(html.parser.HTMLParser):
             
             return
 
-        self._tag_stack.append((tag, attrs))
         if tag == 'h2':
             self._buffer.write('## ')
         elif tag == 'em':
@@ -61,10 +60,17 @@ class AOCParser(html.parser.HTMLParser):
                 self._buffer.write('*')
             else:
                 self._buffer.write('**')
+        elif tag == 'pre':
+            self._buffer.write('```\n')
         elif tag == 'code':
-            self._buffer.write('`')
+            if self._last_tag != 'pre':
+                self._buffer.write('`')
         elif tag == 'li':
             self._buffer.write('* ')
+        elif tag == 'a':
+            self._buffer.write('[')
+
+        self._tag_stack.append((tag, attrs))
 
     def handle_endtag(self, tag):
         if not self._in_article:
@@ -87,14 +93,28 @@ class AOCParser(html.parser.HTMLParser):
                 self._buffer.write('*')
             else:
                 self._buffer.write('**')
+        elif tag == 'pre':
+            self._buffer.write('\n```\n')
         elif tag == 'code':
-            self._buffer.write('`')
+            if self._last_tag != 'pre':
+                self._buffer.write('`')
+        elif tag == 'a':
+            self._buffer.write('](')
+            self._buffer.write(next(v for k, v in attrs if k == 'href'))
+            self._buffer.write(')')
 
     def handle_data(self, data):
         if not self._in_article:
             return
 
         self._buffer.write(data)
+
+    @property
+    def _last_tag(self):
+        try:
+            return self._tag_stack[-1][0]
+        except IndexError:
+            return None
 
     @property
     def result(self):
