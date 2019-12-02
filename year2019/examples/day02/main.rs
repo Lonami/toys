@@ -3,8 +3,11 @@ use std::io::{stdin, Read};
 #[derive(Debug)]
 struct Program {
     memory: Vec<i32>,
-    pc: usize
+    pc: usize,
+    backup: Vec<i32>
 }
+
+const PART_2_GOAL: i32 = 19690720;
 
 impl Program {
     fn new() -> Self {
@@ -19,12 +22,25 @@ impl Program {
             .map(|item| item.trim().parse::<i32>().expect("malformed input"))
             .collect();
 
-        Self { memory, pc: 0 }
+        Self { memory, pc: 0, backup: vec![] }
+    }
+
+    fn save(&mut self) {
+        self.backup = self.memory.clone();
+    }
+
+    fn reset(&mut self) {
+        self.memory = self.backup.clone();
+        self.pc = 0;
     }
 
     fn set_alarm(&mut self) {
-        self.memory[1] = 12;
-        self.memory[2] = 2;
+        self.set_inputs(12, 2);
+    }
+
+    fn set_inputs(&mut self, noun: i32, verb: i32) {
+        self.memory[1] = noun;
+        self.memory[2] = verb;
     }
 
     fn get_operands(&self) -> (usize, usize, usize) {
@@ -70,7 +86,21 @@ impl Program {
 
 fn main() {
     let mut program = Program::new();
+    program.save();
     program.set_alarm();
     program.run();
     println!("{}", program.read(0));
+
+    'outer:
+    for noun in 0..100 {
+        for verb in 0..100 {
+            program.reset();
+            program.set_inputs(noun, verb);
+            program.run();
+            if program.read(0) == PART_2_GOAL {
+                println!("{}", 100 * noun + verb);
+                break 'outer;
+            }
+        }
+    }
 }
