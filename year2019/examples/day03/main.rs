@@ -44,6 +44,10 @@ fn read_inputs() -> Vec<Vec<Move>> {
         .collect()
 }
 
+// Improvements to be made (maybe):
+// ? Don't use a HashMap, use a single Vec<(u32, u32)>.
+// ? Find the corners of both paths and pick the largest to have that items in the vector.
+// * Avoid so much duplication for each direction.
 fn fill_path(map: &mut HashMap<(i16, i16), (u32, u32)>, path: &Vec<Move>, index: PathIndex) {
     let mut x = 0i16;
     let mut y = 0i16;
@@ -111,17 +115,20 @@ fn main() {
     fill_path(&mut map, &first, PathIndex::First);
     fill_path(&mut map, &second, PathIndex::Second);
 
-    println!("{}", manhattan_from_origin(*map
-        .iter()
+    let intersections: HashMap<(i16, i16), (u32, u32)> = map
+        .into_iter()
         .filter(|(_, (dx, dy))| *dx != std::u32::MAX && *dy != std::u32::MAX)
+        .collect();
+
+    println!("{}", manhattan_from_origin(*intersections
+        .iter()
         .min_by_key(|(pos, _)| manhattan_from_origin(**pos))
         .unwrap()
         .0
     ));
 
-    let (dx, dy) = map
+    let (dx, dy) = intersections
         .iter()
-        .filter(|(_, (dx, dy))| *dx != std::u32::MAX && *dy != std::u32::MAX)
         .min_by_key(|(_, (dx, dy))| *dx + *dy)
         .unwrap()
         .1;
