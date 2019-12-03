@@ -1,5 +1,4 @@
 use std::io::{stdin, BufRead};
-use std::collections::HashMap;
 
 #[derive(Debug)]
 enum Direction {
@@ -9,15 +8,35 @@ enum Direction {
     Left
 }
 
-enum PathIndex {
-    First,
-    Second
-}
-
 #[derive(Debug)]
 struct Move {
     direction: Direction,
     amount: i16
+}
+
+// walked = distance to reach this
+#[derive(Debug)]
+struct HLine {
+    x: i16,
+    y: i16,
+    len: i16,
+    walked: u32
+}
+
+#[derive(Debug)]
+struct VLine {
+    x: i16,
+    y: i16,
+    len: i16,
+    walked: u32
+}
+
+#[derive(Debug)]
+struct Intersection {
+    x: i16,
+    y: i16,
+    walked_h: u32,
+    walked_v: u32
 }
 
 impl Move {
@@ -35,6 +54,16 @@ impl Move {
     }
 }
 
+impl Intersection {
+    fn manhattan_from_origin(&self) -> i16 {
+        self.x.abs() + self.y.abs()
+    }
+
+    fn walked_total(&self) -> u32 {
+        self.walked_h + self.walked_v
+    }
+}
+
 fn read_inputs() -> Vec<Vec<Move>> {
     stdin()
         .lock()
@@ -44,66 +73,60 @@ fn read_inputs() -> Vec<Vec<Move>> {
         .collect()
 }
 
-// Improvements to be made (maybe):
-// ? Don't use a HashMap, use a single Vec<(u32, u32)>.
-// ? Find the corners of both paths and pick the largest to have that items in the vector.
-// * Avoid so much duplication for each direction.
-fn fill_path(map: &mut HashMap<(i16, i16), (u32, u32)>, path: &Vec<Move>, index: PathIndex) {
+fn path_to_lines(path: &Vec<Move>) -> (Vec<HLine>, Vec<VLine>) {
     let mut x = 0i16;
     let mut y = 0i16;
-    let mut i = 0u32;
+    let mut walked = 0u32;
+    let mut hlines = vec![];
+    let mut vlines = vec![];
     for mov in path {
         match mov.direction {
             Direction::Up => {
-                for _ in 0..mov.amount {
-                    y += 1;
-                    i += 1;
-                    let mut entry = map.entry((x, y)).or_insert((std::u32::MAX, std::u32::MAX));
-                    match index {
-                        PathIndex::First => entry.0 = entry.0.min(i),
-                        PathIndex::Second => entry.1 = entry.1.min(i)
-                    }
-                }
+                vlines.push(VLine { x, y, walked, len: mov.amount });
+                y += mov.amount;
             },
             Direction::Right => {
-                for _ in 0..mov.amount {
-                    x += 1;
-                    i += 1;
-                    let mut entry = map.entry((x, y)).or_insert((std::u32::MAX, std::u32::MAX));
-                    match index {
-                        PathIndex::First => entry.0 = entry.0.min(i),
-                        PathIndex::Second => entry.1 = entry.1.min(i)
-                    }
-                }
+                hlines.push(HLine { x, y, walked, len: mov.amount });
+                x += mov.amount;
             },
             Direction::Down => {
-                for _ in 0..mov.amount {
-                    y -= 1;
-                    i += 1;
-                    let mut entry = map.entry((x, y)).or_insert((std::u32::MAX, std::u32::MAX));
-                    match index {
-                        PathIndex::First => entry.0 = entry.0.min(i),
-                        PathIndex::Second => entry.1 = entry.1.min(i)
-                    }
-                }
+                vlines.push(VLine { x, y, walked, len: -mov.amount });
+                y -= mov.amount;
             },
             Direction::Left => {
-                for _ in 0..mov.amount {
-                    x -= 1;
-                    i += 1;
-                    let mut entry = map.entry((x, y)).or_insert((std::u32::MAX, std::u32::MAX));
-                    match index {
-                        PathIndex::First => entry.0 = entry.0.min(i),
-                        PathIndex::Second => entry.1 = entry.1.min(i)
-                    }
-                }
-            },
-        }
+                hlines.push(HLine { x, y, walked, len: -mov.amount });
+                x -= mov.amount;
+            }
+        };
+        walked += mov.amount as u32;
     }
+
+    (hlines, vlines)
 }
 
-fn manhattan_from_origin((x, y): (i16, i16)) -> i16 {
-    x.abs() + y.abs()
+fn intersect(horizontal: &HLine, vertical: &VLine) -> Option<Intersection> {
+    let (x0, x1) = if horizontal.len > 0 {
+        (horizontal.x, horizontal.x + horizontal.len)
+    } else {
+        (horizontal.x + horizontal.len, horizontal.x)
+    };
+
+    let (y0, y1) = if vertical.len > 0 {
+        (vertical.y, vertical.y + vertical.len)
+    } else {
+        (vertical.y + vertical.len, vertical.y)
+    };
+
+    if (x0 <= vertical.x && vertical.x <= x1) && (y0 <= horizontal.y && horizontal.y <= y1) {
+        Some(Intersection {
+            x: vertical.x,
+            y: horizontal.y,
+            walked_h: horizontal.walked + (vertical.x - horizontal.x).abs() as u32,
+            walked_v: vertical.walked + (horizontal.y - vertical.y).abs() as u32
+        })
+    } else {
+        None
+    }
 }
 
 fn main() {
@@ -111,27 +134,34 @@ fn main() {
     let second = inputs.pop().expect("invalid empty input");
     let first = inputs.pop().expect("input is missing second line");
 
-    let mut map = HashMap::new();
-    fill_path(&mut map, &first, PathIndex::First);
-    fill_path(&mut map, &second, PathIndex::Second);
+    let (first_h, first_v) = path_to_lines(&first);
+    let (second_h, second_v) = path_to_lines(&second);
 
-    let intersections: HashMap<(i16, i16), (u32, u32)> = map
-        .into_iter()
-        .filter(|(_, (dx, dy))| *dx != std::u32::MAX && *dy != std::u32::MAX)
+    let intersections: Vec<Intersection> =
+        first_h.iter().flat_map(
+            |h| second_v.iter().flat_map(
+                move |v| intersect(h, v)
+            )
+        )
+        .chain(second_h.iter().flat_map(
+            |h| first_v.iter().flat_map(
+                move |v| intersect(h, v)
+            )
+        ))
+        // .filter(|i| i.x != 0 && i.y != 0) // needed for tests for some reason
         .collect();
 
-    println!("{}", manhattan_from_origin(*intersections
-        .iter()
-        .min_by_key(|(pos, _)| manhattan_from_origin(**pos))
-        .unwrap()
-        .0
-    ));
+    assert!(!intersections.is_empty());
 
-    let (dx, dy) = intersections
+    println!("{}", intersections
         .iter()
-        .min_by_key(|(_, (dx, dy))| *dx + *dy)
-        .unwrap()
-        .1;
+        .map(|i| i.manhattan_from_origin())
+        .min()
+        .unwrap());
 
-    println!("{}", dx + dy);
+    println!("{}", intersections
+        .iter()
+        .map(|i| i.walked_total())
+        .min()
+        .unwrap());
 }
