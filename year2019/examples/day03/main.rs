@@ -14,6 +14,12 @@ struct Move {
     amount: i16
 }
 
+#[derive(PartialEq, Debug)]
+enum Orientation {
+    Horizontal,
+    Vertical
+}
+
 // walked = distance to reach this
 #[derive(Debug)]
 struct HLine {
@@ -50,6 +56,13 @@ impl Move {
                 b'L' => Direction::Left,
                 _ => unreachable!()
             }
+        }
+    }
+
+    fn orientation(&self) -> Orientation {
+        match self.direction {
+            Direction::Up | Direction::Down => Orientation::Vertical,
+            Direction::Right | Direction::Left => Orientation::Horizontal
         }
     }
 }
@@ -137,7 +150,7 @@ fn main() {
     let (first_h, first_v) = path_to_lines(&first);
     let (second_h, second_v) = path_to_lines(&second);
 
-    let intersections: Vec<Intersection> =
+    let intersections =
         first_h.iter().flat_map(
             |h| second_v.iter().flat_map(
                 move |v| intersect(h, v)
@@ -147,9 +160,20 @@ fn main() {
             |h| first_v.iter().flat_map(
                 move |v| intersect(h, v)
             )
-        ))
-        // .filter(|i| i.x != 0 && i.y != 0) // needed for tests for some reason
-        .collect();
+        ));
+
+    // Our real input starts parallel to each other.
+    // All example inputs start perpendicular to each other.
+    //
+    // This is an issue because we only consider perpendicular
+    // intersections. We need to skip (0, 0) iff it starts parallel.
+    // There's probably more issues or elegant ways to fix it but
+    // this works.
+    let intersections: Vec<Intersection> = if first[0].orientation() == second[0].orientation() {
+        intersections.collect()
+    } else {
+        intersections.filter(|i| i.x != 0 && i.y != 0).collect()
+    };
 
     assert!(!intersections.is_empty());
 
