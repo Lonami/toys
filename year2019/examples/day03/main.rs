@@ -9,6 +9,11 @@ enum Direction {
     Left
 }
 
+enum PathIndex {
+    First,
+    Second
+}
+
 #[derive(Debug)]
 struct Move {
     direction: Direction,
@@ -39,33 +44,54 @@ fn read_inputs() -> Vec<Vec<Move>> {
         .collect()
 }
 
-fn fill_path(map: &mut HashMap<(i16, i16), u8>, path: &Vec<Move>, bit: u8) {
+fn fill_path(map: &mut HashMap<(i16, i16), (u32, u32)>, path: &Vec<Move>, index: PathIndex) {
     let mut x = 0i16;
     let mut y = 0i16;
+    let mut i = 0u32;
     for mov in path {
         match mov.direction {
             Direction::Up => {
                 for _ in 0..mov.amount {
                     y += 1;
-                    *map.entry((x, y)).or_insert(0) |= bit;
+                    i += 1;
+                    let mut entry = map.entry((x, y)).or_insert((std::u32::MAX, std::u32::MAX));
+                    match index {
+                        PathIndex::First => entry.0 = entry.0.min(i),
+                        PathIndex::Second => entry.1 = entry.1.min(i)
+                    }
                 }
             },
             Direction::Right => {
                 for _ in 0..mov.amount {
                     x += 1;
-                    *map.entry((x, y)).or_insert(0) |= bit;
+                    i += 1;
+                    let mut entry = map.entry((x, y)).or_insert((std::u32::MAX, std::u32::MAX));
+                    match index {
+                        PathIndex::First => entry.0 = entry.0.min(i),
+                        PathIndex::Second => entry.1 = entry.1.min(i)
+                    }
                 }
             },
             Direction::Down => {
                 for _ in 0..mov.amount {
                     y -= 1;
-                    *map.entry((x, y)).or_insert(0) |= bit;
+                    i += 1;
+                    let mut entry = map.entry((x, y)).or_insert((std::u32::MAX, std::u32::MAX));
+                    match index {
+                        PathIndex::First => entry.0 = entry.0.min(i),
+                        PathIndex::Second => entry.1 = entry.1.min(i)
+                    }
                 }
             },
             Direction::Left => {
                 for _ in 0..mov.amount {
                     x -= 1;
-                    *map.entry((x, y)).or_insert(0) |= bit;
+                    i += 1;
+                    let mut entry = map.entry((x, y)).or_insert((std::u32::MAX, std::u32::MAX));
+                    match index {
+                        PathIndex::First => entry.0 = entry.0.min(i),
+                        PathIndex::Second => entry.1 = entry.1.min(i)
+                    }
                 }
             },
         }
@@ -77,19 +103,28 @@ fn manhattan_from_origin((x, y): (i16, i16)) -> i16 {
 }
 
 fn main() {
+    let mut inputs = read_inputs();
+    let second = inputs.pop().expect("invalid empty input");
+    let first = inputs.pop().expect("input is missing second line");
+
     let mut map = HashMap::new();
-    let paths = read_inputs();
-    let mut bit = 1;
-    for path in paths {
-        fill_path(&mut map, &path, bit);
-        bit <<= 1;
-    }
+    fill_path(&mut map, &first, PathIndex::First);
+    fill_path(&mut map, &second, PathIndex::Second);
 
     println!("{}", manhattan_from_origin(*map
         .iter()
-        .filter(|(_, bit)| **bit == 0b11)
+        .filter(|(_, (dx, dy))| *dx != std::u32::MAX && *dy != std::u32::MAX)
         .min_by_key(|(pos, _)| manhattan_from_origin(**pos))
         .unwrap()
         .0
     ));
+
+    let (dx, dy) = map
+        .iter()
+        .filter(|(_, (dx, dy))| *dx != std::u32::MAX && *dy != std::u32::MAX)
+        .min_by_key(|(_, (dx, dy))| *dx + *dy)
+        .unwrap()
+        .1;
+
+    println!("{}", dx + dy);
 }
