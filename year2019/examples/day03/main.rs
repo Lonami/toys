@@ -45,6 +45,9 @@ struct Intersection {
     walked_v: u32
 }
 
+const TOO_MANY_ACTIONS: usize = 100;
+const CLOSE_DISTANCE_PERCENT: f32 = 0.2;
+
 impl Move {
     fn from_str(string: &str) -> Self {
         Self {
@@ -124,22 +127,24 @@ fn intersect(horizontal: &HLine, vertical: &VLine) -> Option<Intersection> {
         (horizontal.x + horizontal.len, horizontal.x)
     };
 
-    let (y0, y1) = if vertical.len > 0 {
-        (vertical.y, vertical.y + vertical.len)
-    } else {
-        (vertical.y + vertical.len, vertical.y)
-    };
+    if x0 <= vertical.x && vertical.x <= x1 {
+        let (y0, y1) = if vertical.len > 0 {
+            (vertical.y, vertical.y + vertical.len)
+        } else {
+            (vertical.y + vertical.len, vertical.y)
+        };
 
-    if (x0 <= vertical.x && vertical.x <= x1) && (y0 <= horizontal.y && horizontal.y <= y1) {
-        Some(Intersection {
-            x: vertical.x,
-            y: horizontal.y,
-            walked_h: horizontal.walked + (vertical.x - horizontal.x).abs() as u32,
-            walked_v: vertical.walked + (horizontal.y - vertical.y).abs() as u32
-        })
-    } else {
-        None
+        if y0 <= horizontal.y && horizontal.y <= y1 {
+            return Some(Intersection {
+                x: vertical.x,
+                y: horizontal.y,
+                walked_h: horizontal.walked + (vertical.x - horizontal.x).abs() as u32,
+                walked_v: vertical.walked + (horizontal.y - vertical.y).abs() as u32
+            });
+        }
     }
+
+    None
 }
 
 fn main() {
@@ -147,8 +152,37 @@ fn main() {
     let second = inputs.pop().expect("invalid empty input");
     let first = inputs.pop().expect("input is missing second line");
 
-    let (first_h, first_v) = path_to_lines(&first);
-    let (second_h, second_v) = path_to_lines(&second);
+    let (mut first_h, mut first_v) = path_to_lines(&first);
+    let (mut second_h, mut second_v) = path_to_lines(&second);
+
+    // If we have far too many actions, keep only the closest percentage.
+    //
+    // Note that this if is completely irrelevant to the solution itself
+    // and as such, removing it won't have any effect on the solution.
+    if first.len() > TOO_MANY_ACTIONS {
+        // First determine what the farthest point is.
+        let mut max_x = 0;
+        let mut max_y = 0;
+        for h in first_h.iter().chain(second_h.iter()) {
+            max_x = max_x.max(h.x.abs());
+            max_y = max_y.max(h.y.abs());
+        }
+        for v in first_v.iter().chain(second_v.iter()) {
+            max_x = max_x.max(v.x.abs());
+            max_y = max_y.max(v.y.abs());
+        }
+
+        let max_dist_sq = (
+            (CLOSE_DISTANCE_PERCENT * max_x as f32).powi(2)
+            + (CLOSE_DISTANCE_PERCENT * max_y as f32).powi(2)
+        ) as i32;
+
+        // Then filter to keep Close Enough™
+        first_h = first_h.into_iter().filter(|h| (h.x as i32).pow(2) + (h.y as i32).pow(2) < max_dist_sq).collect();
+        first_v = first_v.into_iter().filter(|v| (v.x as i32).pow(2) + (v.y as i32).pow(2) < max_dist_sq).collect();
+        second_h = second_h.into_iter().filter(|h| (h.x as i32).pow(2) + (h.y as i32).pow(2) < max_dist_sq).collect();
+        second_v = second_v.into_iter().filter(|v| (v.x as i32).pow(2) + (v.y as i32).pow(2) < max_dist_sq).collect();
+    }
 
     let intersections =
         first_h.iter().flat_map(
