@@ -1,14 +1,14 @@
 use year2019::intcode::Program;
 
 fn main() {
-    let mut program = Program::new();
+    let mut program = Program::from_stdin();
     program.save();
     program.set_stdin(vec![1]);
     program.run();
-    println!("{}", program.get_stdout().iter().last().expect("program produced empty output"));
+    println!("{}", program.stdout());
 
     program.reset();
     program.set_stdin(vec![5]);
     program.run();
-    println!("{}", program.get_stdout().iter().next().expect("program produced empty output"));
+    println!("{}", program.stdout());
 }

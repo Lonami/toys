@@ -21,11 +21,11 @@ const PART_2_GOAL: i32 = 19690720;
 // )
 
 fn main() {
-    let mut program = Program::new();
+    let mut program = Program::from_stdin();
     program.save();
-    program.set_alarm();
+    program.set_inputs(12, 2);
     program.run();
-    println!("{}", program.read(0));
+    println!("{}", program.stdout());
 
     'outer:
     for noun in 0..100 {
@@ -33,7 +33,7 @@ fn main() {
             program.reset();
             program.set_inputs(noun, verb);
             program.run();
-            if program.read(0) == PART_2_GOAL {
+            if program.stdout() == PART_2_GOAL {
                 println!("{}", 100 * noun + verb);
                 break 'outer;
             }

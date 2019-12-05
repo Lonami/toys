@@ -12,8 +12,7 @@ pub struct Program {
     pc: usize,
     backup: Vec<i32>,
     stdin: Vec<i32>,
-    in_pos: usize,
-    stdout: Vec<i32>
+    in_pos: usize
 }
 
 impl ParameterMode {
@@ -27,7 +26,8 @@ impl ParameterMode {
 }
 
 impl Program {
-    pub fn new() -> Self {
+    /// Build a new program parsing the input from stdin
+    pub fn from_stdin() -> Self {
         let mut buffer = String::new();
         stdin()
             .lock()
@@ -44,66 +44,60 @@ impl Program {
             pc: 0,
             backup: vec![],
             stdin: vec![],
-            in_pos: 0,
-            stdout: vec![]
+            in_pos: 0
         }
     }
 
+    /// Save a backup of the current program's memory
     pub fn save(&mut self) {
         self.backup = self.memory.clone();
     }
 
+    /// Reset the program's memory to the backup, setting the program and input counter to 0.
     pub fn reset(&mut self) {
         self.memory = self.backup.clone();
         self.pc = 0;
         self.in_pos = 0;
-        self.stdout.clear();
     }
 
-    pub fn set_alarm(&mut self) {
-        self.set_inputs(12, 2);
-    }
-
+    /// Change the input noun and verb of the program.
     pub fn set_inputs(&mut self, noun: i32, verb: i32) {
         self.memory[1] = noun;
         self.memory[2] = verb;
     }
 
+    /// Set a vector from which input should be read by the program.
     pub fn set_stdin(&mut self, input: Vec<i32>) {
         self.stdin = input;
     }
 
-    pub fn get_stdout(&self) -> &Vec<i32> {
-        &self.stdout
+    /// Get a mutable reference to the output at (pc + offset)
+    fn output(&mut self, offset: usize) -> &mut i32 {
+        let pos = self.memory[self.pc + offset] as usize;
+        &mut self.memory[pos]
     }
 
-    // read a memory position at (pc + offset)
-    fn read_pos(&self, offset: usize) -> usize {
-        self.memory[self.pc + offset] as usize
-    }
-
-    // read a memory parameter at (pc + offset) based on the parameter mode
-    fn read_param(&self, offset: usize, mode: ParameterMode) -> i32 {
+    /// Fetch the value at (pc + offset), based on the given parameter mode.
+    fn input(&self, offset: usize, mode: ParameterMode) -> i32 {
+        let value = self.memory[self.pc + offset];
         match mode {
-            ParameterMode::Position => self.memory[self.memory[self.pc + offset] as usize],
-            ParameterMode::Immediate => self.memory[self.pc + offset]
+            ParameterMode::Position => self.memory[value as usize],
+            ParameterMode::Immediate => value
         }
     }
 
-    // (left input value, right input value, output position)
-    fn get_operands(&self, modes: &[ParameterMode; 3]) -> (i32, i32, usize) {
-        (
-            self.read_param(1, modes[0]),
-            self.read_param(2, modes[1]),
-            self.read_pos(3)
-        )
+    /// Fetch the latest output value (stdout)
+    pub fn stdout(&self) -> i32 {
+        self.memory[0]
     }
 
-    // raw read of memory
-    pub fn read(&self, index: usize) -> i32 {
-        self.memory[index]
+    /// Operate on a 4-wide instruction (param1, param2, output)
+    fn operate(&mut self, operation: impl Fn(i32, i32) -> i32, modes: &[ParameterMode; 3]) -> usize {
+        *self.output(3) = operation(self.input(1, modes[0]), self.input(2, modes[1]));
+        4
     }
 
+    /// Read an instruction and return its (opcode, parameter modes)
     fn read_ins(&self) -> (i32, [ParameterMode; 3]) {
         let ins = self.memory[self.pc];
         let opcode = ins % 100;
@@ -116,57 +110,46 @@ impl Program {
         (opcode, modes)
     }
 
+    /// Step the program by reading and executing one instruction.
     pub fn step(&mut self) -> bool {
         let (ins, modes) = self.read_ins();
         self.pc += match ins {
             1 => { // add
-                let (lin, rin, out) = self.get_operands(&modes);
-                self.memory[out] = lin + rin;
-                4
+                self.operate(|a, b| a + b, &modes)
             },
             2 => { // mul
-                let (lin, rin, out) = self.get_operands(&modes);
-                self.memory[out] = lin * rin;
-                4
+                self.operate(|a, b| a * b, &modes)
             },
             3 => { // read
-                let out = self.read_pos(1);
-                self.memory[out as usize] = self.stdin[self.in_pos];
+                *self.output(1) = self.stdin[self.in_pos];
                 self.in_pos += 1;
                 2
             },
             4 => { // write
-                let lin = self.read_pos(1);
-                self.stdout.push(self.memory[lin as usize]);
+                self.memory[0] = self.input(1, modes[0]);
                 2
             },
             5 => { // jnz
-                let test = self.read_param(1, modes[0]);
-                if test != 0 {
-                    self.pc = self.read_param(2, modes[1]) as usize;
+                if self.input(1, modes[0]) != 0 {
+                    self.pc = self.input(2, modes[1]) as usize;
                     0
                 } else {
                     3
                 }
             },
-            6 => { // jez
-                let test = self.read_param(1, modes[0]);
-                if test == 0 {
-                    self.pc = self.read_param(2, modes[1]) as usize;
+            6 => { // jz
+                if self.input(1, modes[0]) == 0 {
+                    self.pc = self.input(2, modes[1]) as usize;
                     0
                 } else {
                     3
                 }
             },
             7 => { // setl
-                let (lin, rin, out) = self.get_operands(&modes);
-                self.memory[out] = (lin < rin) as i32;
-                4
+                self.operate(|a, b| (a < b) as i32, &modes)
             },
             8 => { // sete
-                let (lin, rin, out) = self.get_operands(&modes);
-                self.memory[out] = (lin == rin) as i32;
-                4
+                self.operate(|a, b| (a == b) as i32, &modes)
             },
             99 => { // hcf
                 return false;
@@ -179,6 +162,7 @@ impl Program {
         true
     }
 
+    /// Run the program until it halts.
     pub fn run(&mut self) {
         while self.step() {
         }
