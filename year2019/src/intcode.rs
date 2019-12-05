@@ -77,6 +77,12 @@ impl Program {
         &self.stdout
     }
 
+    // read a memory position at (pc + offset)
+    fn read_pos(&self, offset: usize) -> usize {
+        self.memory[self.pc + offset] as usize
+    }
+
+    // read a memory parameter at (pc + offset) based on the parameter mode
     fn read_param(&self, offset: usize, mode: ParameterMode) -> i32 {
         match mode {
             ParameterMode::Position => self.memory[self.memory[self.pc + offset] as usize],
@@ -89,10 +95,11 @@ impl Program {
         (
             self.read_param(1, modes[0]),
             self.read_param(2, modes[1]),
-            self.memory[self.pc + 3] as usize
+            self.read_pos(3)
         )
     }
 
+    // raw read of memory
     pub fn read(&self, index: usize) -> i32 {
         self.memory[index]
     }
@@ -123,15 +130,43 @@ impl Program {
                 4
             },
             3 => { // read
-                let out = self.memory[self.pc + 1];
+                let out = self.read_pos(1);
                 self.memory[out as usize] = self.stdin[self.in_pos];
                 self.in_pos += 1;
                 2
             },
             4 => { // write
-                let lin = self.memory[self.pc + 1];
+                let lin = self.read_pos(1);
                 self.stdout.push(self.memory[lin as usize]);
                 2
+            },
+            5 => { // jnz
+                let test = self.read_param(1, modes[0]);
+                if test != 0 {
+                    self.pc = self.read_param(2, modes[1]) as usize;
+                    0
+                } else {
+                    3
+                }
+            },
+            6 => { // jez
+                let test = self.read_param(1, modes[0]);
+                if test == 0 {
+                    self.pc = self.read_param(2, modes[1]) as usize;
+                    0
+                } else {
+                    3
+                }
+            },
+            7 => { // setl
+                let (lin, rin, out) = self.get_operands(&modes);
+                self.memory[out] = (lin < rin) as i32;
+                4
+            },
+            8 => { // sete
+                let (lin, rin, out) = self.get_operands(&modes);
+                self.memory[out] = (lin == rin) as i32;
+                4
             },
             99 => { // hcf
                 return false;
