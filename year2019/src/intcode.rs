@@ -1,10 +1,29 @@
 use std::io::{stdin, Read};
 
+#[derive(Copy, Clone, Debug)]
+enum ParameterMode {
+    Position = 0,
+    Immediate = 1
+}
+
 #[derive(Debug)]
 pub struct Program {
     memory: Vec<i32>,
     pc: usize,
-    backup: Vec<i32>
+    backup: Vec<i32>,
+    stdin: Vec<i32>,
+    in_pos: usize,
+    stdout: Vec<i32>
+}
+
+impl ParameterMode {
+    fn from_i32(value: i32) -> Self {
+        match value {
+            0 => ParameterMode::Position,
+            1 => ParameterMode::Immediate,
+            _ => panic!(format!("unknown parameter mode {}", value))
+        }
+    }
 }
 
 impl Program {
@@ -20,7 +39,14 @@ impl Program {
             .map(|item| item.trim().parse::<i32>().expect("malformed input"))
             .collect();
 
-        Self { memory, pc: 0, backup: vec![] }
+        Self {
+            memory,
+            pc: 0,
+            backup: vec![],
+            stdin: vec![],
+            in_pos: 0,
+            stdout: vec![]
+        }
     }
 
     pub fn save(&mut self) {
@@ -30,6 +56,8 @@ impl Program {
     pub fn reset(&mut self) {
         self.memory = self.backup.clone();
         self.pc = 0;
+        self.in_pos = 0;
+        self.stdout.clear();
     }
 
     pub fn set_alarm(&mut self) {
@@ -41,10 +69,26 @@ impl Program {
         self.memory[2] = verb;
     }
 
-    fn get_operands(&self) -> (usize, usize, usize) {
+    pub fn set_stdin(&mut self, input: Vec<i32>) {
+        self.stdin = input;
+    }
+
+    pub fn get_stdout(&self) -> &Vec<i32> {
+        &self.stdout
+    }
+
+    fn read_param(&self, offset: usize, mode: ParameterMode) -> i32 {
+        match mode {
+            ParameterMode::Position => self.memory[self.memory[self.pc + offset] as usize],
+            ParameterMode::Immediate => self.memory[self.pc + offset]
+        }
+    }
+
+    // (left input value, right input value, output position)
+    fn get_operands(&self, modes: &[ParameterMode; 3]) -> (i32, i32, usize) {
         (
-            self.memory[self.pc + 1] as usize,
-            self.memory[self.pc + 2] as usize,
+            self.read_param(1, modes[0]),
+            self.read_param(2, modes[1]),
             self.memory[self.pc + 3] as usize
         )
     }
@@ -53,17 +97,41 @@ impl Program {
         self.memory[index]
     }
 
+    fn read_ins(&self) -> (i32, [ParameterMode; 3]) {
+        let ins = self.memory[self.pc];
+        let opcode = ins % 100;
+        let modes = [
+            ParameterMode::from_i32((ins / 100) % 10),
+            ParameterMode::from_i32((ins / 1000) % 10),
+            ParameterMode::from_i32((ins / 10000) % 10),
+        ];
+
+        (opcode, modes)
+    }
+
     pub fn step(&mut self) -> bool {
-        self.pc += match self.memory[self.pc] {
+        let (ins, modes) = self.read_ins();
+        self.pc += match ins {
             1 => { // add
-                let (lin, rin, out) = self.get_operands();
-                self.memory[out] = self.memory[lin] + self.memory[rin];
+                let (lin, rin, out) = self.get_operands(&modes);
+                self.memory[out] = lin + rin;
                 4
             },
             2 => { // mul
-                let (lin, rin, out) = self.get_operands();
-                self.memory[out] = self.memory[lin] * self.memory[rin];
+                let (lin, rin, out) = self.get_operands(&modes);
+                self.memory[out] = lin * rin;
                 4
+            },
+            3 => { // read
+                let out = self.memory[self.pc + 1];
+                self.memory[out as usize] = self.stdin[self.in_pos];
+                self.in_pos += 1;
+                2
+            },
+            4 => { // write
+                let lin = self.memory[self.pc + 1];
+                self.stdout.push(self.memory[lin as usize]);
+                2
             },
             99 => { // hcf
                 return false;
@@ -81,21 +149,3 @@ impl Program {
         }
     }
 }
-
-// Part 1 Python one-liner:
-// (lambda s, *a: s(s, *a))(lambda s, a, r, m, pc: s(s, a, r, a(m, m[pc + 3], r(m, pc + 1) + r(m, pc + 2)), pc + 4) if m[pc] == 1 else s(s, a, r, a(m, m[pc + 3], r(m, pc + 1) * r(m, pc + 2)), pc + 4) if m[pc] == 2 else m[0] if m[pc] == 99 else s(s, a, r, m, pc + 1), lambda m, i, v: m[:i] + [v] + m[i+1:], lambda m, i: m[m[i]], (lambda m: m[:1] + [12, 2] + m[3:])(list(map(int, open('input').read().split(',')))), 0)
-//
-// Non-stupid indent and proper names:
-// (lambda step, *args: step(step, *args))(lambda step, assign, read, memory, pc:
-//     step(step, assign, read, assign(memory, memory[pc + 3], read(memory, pc + 1) + read(memory, pc + 2)), pc + 4)
-//         if memory[pc] == 1 else
-//     step(step, assign, read, assign(memory, memory[pc + 3], read(memory, pc + 1) * read(memory, pc + 2)), pc + 4)
-//         if memory[pc] == 2 else
-//     memory[0]
-//         if memory[pc] == 99 else
-//     step(step, assign, read, memory, pc + 1),
-//     lambda m, i, v: m[:i] + [v] + m[i+1:],
-//     lambda m, i: m[m[i]],
-//     (lambda m: m[:1] + [12, 2] + m[3:])(list(map(int, open('input').read().split(',')))),
-//     0
-// )
