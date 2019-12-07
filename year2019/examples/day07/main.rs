@@ -3,11 +3,11 @@ use std::iter::Iterator;
 
 const AMPLIFIER_COUNT: usize = 5;
 
-struct Permutations(Vec<i32>);
+struct Permutations(Vec<i32>, usize);
 
 impl Permutations {
-    fn new(n: usize) -> Self {
-        Permutations(Vec::with_capacity(n))
+    fn new(n: usize, start: usize) -> Self {
+        Permutations(Vec::with_capacity(n), start)
     }
 }
 
@@ -19,7 +19,7 @@ impl Iterator for Permutations {
     /// https://www.nayuki.io/page/next-lexicographical-permutation-algorithm
     fn next(&mut self) -> Option<Self::Item> {
 	    if self.0.is_empty() {
-            for i in 0..self.0.capacity() {
+            for i in (self.1)..(self.1 + self.0.capacity()) {
                 self.0.push(i as i32);
             }
             return Some(self.0.clone());
@@ -50,13 +50,36 @@ impl Iterator for Permutations {
 fn main() {
     let mut program = Program::from_stdin();
     program.save();
-    println!("{}", Permutations::new(AMPLIFIER_COUNT).map(|phase_settings| {
+
+    // Part 1 (reusing the same program for all amplifiers through reset)
+    println!("{}", Permutations::new(AMPLIFIER_COUNT, 0).map(|phase_settings| {
         let mut last_output = 0;
         for phase_setting in phase_settings.iter() {
             program.reset();
             program.set_stdin(vec![*phase_setting, last_output]);
             program.run();
             last_output = program.stdout();
+        }
+        last_output
+    }).max().expect("amplifier count was zero"));
+
+    // Part 2 (each amplifier now needs its own copy because we need to resume)
+    program.reset();
+    let mut programs = vec![program.clone(); AMPLIFIER_COUNT];
+    println!("{}", Permutations::new(AMPLIFIER_COUNT, 5).map(|phase_settings| {
+        for (phase_setting, p) in phase_settings.iter().zip(programs.iter_mut()) {
+            p.reset();
+            p.set_stdin(vec![*phase_setting]);
+        }
+
+        // Loop until the last program catches fire, the last output is fed into first
+        let mut last_output = 0;
+        while !programs[programs.len() - 1].on_fire() {
+            for p in programs.iter_mut() {
+                p.push_input(last_output);
+                p.run();
+                last_output = p.stdout();
+            }
         }
         last_output
     }).max().expect("amplifier count was zero"));

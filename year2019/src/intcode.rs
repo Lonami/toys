@@ -6,7 +6,7 @@ enum ParameterMode {
     Immediate = 1
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Program {
     memory: Vec<i32>,
     pc: usize,
@@ -57,6 +57,7 @@ impl Program {
     pub fn reset(&mut self) {
         self.memory = self.backup.clone();
         self.pc = 0;
+        self.stdin.clear();
         self.in_pos = 0;
     }
 
@@ -69,6 +70,10 @@ impl Program {
     /// Set a vector from which input should be read by the program.
     pub fn set_stdin(&mut self, input: Vec<i32>) {
         self.stdin = input;
+    }
+
+    pub fn push_input(&mut self, input: i32) {
+        self.stdin.push(input);
     }
 
     /// Get a mutable reference to the output at (pc + offset)
@@ -110,6 +115,10 @@ impl Program {
         (opcode, modes)
     }
 
+    pub fn on_fire(&self) -> bool {
+        self.read_ins().0 == 99
+    }
+
     /// Step the program by reading and executing one instruction.
     pub fn step(&mut self) -> bool {
         let (ins, modes) = self.read_ins();
@@ -121,9 +130,13 @@ impl Program {
                 self.operate(|a, b| a * b, &modes)
             },
             3 => { // read
-                *self.output(1) = self.stdin[self.in_pos];
-                self.in_pos += 1;
-                2
+                if let Some(value) = self.stdin.get(self.in_pos) {
+                    *self.output(1) = *value;
+                    self.in_pos += 1;
+                    2
+                } else {
+                    return false; // halt, we need more input
+                }
             },
             4 => { // write
                 self.memory[0] = self.input(1, modes[0]);
