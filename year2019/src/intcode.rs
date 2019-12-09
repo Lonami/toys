@@ -71,6 +71,7 @@ impl Program {
         self.pc = 0;
         self.stdin.clear();
         self.in_pos = 0;
+        self.relative_base = 0;
     }
 
     /// Change the input noun and verb of the program.
