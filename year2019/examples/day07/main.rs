@@ -53,10 +53,10 @@ fn main() {
 
     // Part 1 (reusing the same program for all amplifiers through reset)
     println!("{}", Permutations::new(AMPLIFIER_COUNT, 0).map(|phase_settings| {
-        let mut last_output = 0;
+        let mut last_output = 0i64;
         for phase_setting in phase_settings.iter() {
             program.reset();
-            program.set_stdin(vec![*phase_setting, last_output]);
+            program.set_stdin(vec![*phase_setting, last_output as i32]);
             program.run();
             last_output = program.stdout();
         }
@@ -73,10 +73,10 @@ fn main() {
         }
 
         // Loop until the last program catches fire, the last output is fed into first
-        let mut last_output = 0;
+        let mut last_output = 0i64;
         while !programs[programs.len() - 1].on_fire() {
             for p in programs.iter_mut() {
-                p.push_input(last_output);
+                p.push_input(last_output as i32);
                 p.run();
                 last_output = p.stdout();
             }

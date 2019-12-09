@@ -1,6 +1,6 @@
 use year2019::intcode::Program;
 
-const PART_2_GOAL: i32 = 19690720;
+const PART_2_GOAL: i64 = 19690720;
 
 // Part 1 Python one-liner:
 // (lambda s, *a: s(s, *a))(lambda s, a, r, m, pc: s(s, a, r, a(m, m[pc + 3], r(m, pc + 1) + r(m, pc + 2)), pc + 4) if m[pc] == 1 else s(s, a, r, a(m, m[pc + 3], r(m, pc + 1) * r(m, pc + 2)), pc + 4) if m[pc] == 2 else m[0] if m[pc] == 99 else s(s, a, r, m, pc + 1), lambda m, i, v: m[:i] + [v] + m[i+1:], lambda m, i: m[m[i]], (lambda m: m[:1] + [12, 2] + m[3:])(list(map(int, open('input').read().split(',')))), 0)
