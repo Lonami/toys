@@ -25,7 +25,7 @@ fn main() {
     program.save();
     program.set_inputs(12, 2);
     program.run();
-    println!("{}", program.stdout());
+    println!("{}", program.first_value());
 
     'outer:
     for noun in 0..100 {
@@ -33,7 +33,7 @@ fn main() {
             program.reset();
             program.set_inputs(noun, verb);
             program.run();
-            if program.stdout() == PART_2_GOAL {
+            if program.first_value() == PART_2_GOAL {
                 println!("{}", 100 * noun + verb);
                 break 'outer;
             }

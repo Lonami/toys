@@ -114,6 +114,11 @@ impl Program {
         self.stdout
     }
 
+    /// Fetch the first value in memory (old stdout)
+    pub fn first_value(&self) -> i64 {
+        self.memory[0]
+    }
+
     /// Operate on a 4-wide instruction (param1, param2, output)
     fn operate(&mut self, operation: impl Fn(i64, i64) -> i64, modes: &[ParameterMode; 3]) -> usize {
         *self.output(3, modes[2]) = operation(self.input(1, modes[0]), self.input(2, modes[1]));
