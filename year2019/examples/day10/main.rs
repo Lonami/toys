@@ -226,6 +226,7 @@ fn main() {
     }).max_by_key(|&(_, visible)| visible).expect("empty input");
     println!("{}", visible);
 
+    assert!(visible >= 200);
     // Because we have to find the 200th and (visible count > 200)
     // we can do this in just one turn. Simply find the 200th visible
     // one (sorted iteration by angle), no need to blast anything.
