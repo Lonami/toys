@@ -20,6 +20,27 @@ struct CellMapIter<'a> {
     index: usize
 }
 
+// I was never good with angles
+fn angle((x, y): (i32, i32)) -> f32 {
+    if y == 0 {
+        // right (1/2 pi) or left (3/2 pi)
+        (if x > 0 { 1f32 } else { 3f32 }) * std::f32::consts::FRAC_PI_2
+    } else if x == 0 {
+        // down (2/2 pi) or up (0/2 pi)
+        if y > 0 { std::f32::consts::PI } else { 0f32 }
+    } else {
+        // random stuff until it works
+        let angle = ((x as f32) / (y as f32)).atan();
+        if y > 0 {
+            std::f32::consts::PI - angle
+        } else if x > 0 {
+            -angle
+        } else {
+            2f32 * std::f32::consts::PI - angle
+        }
+    }
+}
+
 impl Cell {
     fn from_char(character: u8) -> Self {
         match character {
@@ -77,6 +98,39 @@ impl CellMap {
                 }
             }
         }).sum::<usize>()
+    }
+
+    fn find_nth_visible(&self, (sx, sy): (i32, i32), n: usize) -> (i32, i32) {
+        let mut deltas: Vec<(i32, i32)> = self.iter().filter_map(|((tx, ty), target)| {
+            match target {
+                Cell::Empty => None,
+                Cell::Asteroid => {
+                    let mut dx = tx - sx;
+                    let mut dy = ty - sy;
+                    if dx == 0 && dy == 0 {
+                        None
+                    } else {
+                        let div = gcd(dx, dy);
+                        dx /= div;
+                        dy /= div;
+
+                        // find resulting trace
+                        if let Some((rx, ry)) = self.trace((sx, sy), (dx, dy)) {
+                            if tx == rx && ty == ry {
+                                Some((dx, dy))
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        }
+                    }
+                }
+            }
+        }).collect();
+        deltas.sort_by(|a, b| angle(*a).partial_cmp(&angle(*b)).expect("cannot compare floats"));
+        let (dx, dy) = deltas[n];
+        (sx + dx, sy + dy)
     }
 
     fn iter(&self) -> CellMapIter {
@@ -173,10 +227,17 @@ fn gcd(mut a: i32, mut b: i32) -> i32 {
 
 fn main() {
     let map = read_input();
-    println!("{}", map.iter().filter_map(|(pos, source)| {
+    let (pos, visible) = map.iter().filter_map(|(pos, source)| {
         match source {
             Cell::Empty => None,
-            Cell::Asteroid => Some(map.count_visible(pos))
+            Cell::Asteroid => Some((pos, map.count_visible(pos)))
         }
-    }).max().expect("empty input"));
+    }).max_by_key(|&(_, visible)| visible).expect("empty input");
+    println!("{}", visible);
+
+    // because we have to find the 200th and visible count > 200
+    // we can do this in just one turn. simply find the 200th visible
+    // one (sorted iteration by angle), no need to blast anything
+    let (x, y) = map.find_nth_visible(pos, 199);
+    println!("{}", x * 100 + y);
 }
