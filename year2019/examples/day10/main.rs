@@ -52,10 +52,12 @@ impl Cell {
 }
 
 impl CellMap {
+    /// Are the given coordinates inside the map?
     fn in_bounds(&self, (x, y): (i32, i32)) -> bool {
         x >= 0 && (x as usize) < self.width && y >= 0 && (y as usize) < self.height
     }
 
+    /// Trace from (x, y) in steps of (dx, dy) until we collide.
     fn trace(&self, (mut x, mut y): (i32, i32), (dx, dy): (i32, i32)) -> Option<(i32, i32)> {
         x += dx;
         y += dy;
@@ -74,58 +76,46 @@ impl CellMap {
         None
     }
 
-    fn count_visible(&self, (sx, sy): (i32, i32)) -> usize {
-        self.iter().map(|((tx, ty), target)| {
-            match target {
-                Cell::Empty => 0,
-                Cell::Asteroid => {
-                    let mut dx = tx - sx;
-                    let mut dy = ty - sy;
-                    if dx == 0 && dy == 0 {
-                        0 // self, ignore (not visible)
-                    } else {
-                        let div = gcd(dx, dy);
-                        dx /= div;
-                        dy /= div;
+    /// Can we trace from source (x, y) to target (x, y) without colliding before?
+    /// If the answer is yes, return the delta step we have to follow to get there.
+    fn can_trace(&self, (sx, sy): (i32, i32), (tx, ty): (i32, i32)) -> Option<(i32, i32)> {
+        let mut dx = tx - sx;
+        let mut dy = ty - sy;
+        if dx == 0 && dy == 0 {
+            // Cannot trace to itself
+            return None;
+        }
 
-                        // find resulting trace
-                        if let Some((rx, ry)) = self.trace((sx, sy), (dx, dy)) {
-                            (tx == rx && ty == ry) as usize // true of result = target
-                        } else {
-                            0
-                        }
-                    }
-                }
+        let div = gcd(dx, dy);
+        dx /= div;
+        dy /= div;
+
+        // Find (r)esulting trace
+        if let Some((rx, ry)) = self.trace((sx, sy), (dx, dy)) {
+            if tx == rx && ty == ry {
+                return Some((dx, dy));
+            }
+        }
+
+        None
+    }
+
+    /// Count how many bodies are visible from source (how many we can trace).
+    fn count_visible(&self, source: (i32, i32)) -> usize {
+        self.iter().map(|(target, body)| {
+            match body {
+                Cell::Empty => 0,
+                Cell::Asteroid => self.can_trace(source, target).is_some() as usize
             }
         }).sum::<usize>()
     }
 
+    /// Get the n'th visible body from source, and return its position.
     fn find_nth_visible(&self, (sx, sy): (i32, i32), n: usize) -> (i32, i32) {
-        let mut deltas: Vec<(i32, i32)> = self.iter().filter_map(|((tx, ty), target)| {
-            match target {
+        let mut deltas: Vec<(i32, i32)> = self.iter().filter_map(|(target, body)| {
+            match body {
                 Cell::Empty => None,
-                Cell::Asteroid => {
-                    let mut dx = tx - sx;
-                    let mut dy = ty - sy;
-                    if dx == 0 && dy == 0 {
-                        None
-                    } else {
-                        let div = gcd(dx, dy);
-                        dx /= div;
-                        dy /= div;
-
-                        // find resulting trace
-                        if let Some((rx, ry)) = self.trace((sx, sy), (dx, dy)) {
-                            if tx == rx && ty == ry {
-                                Some((dx, dy))
-                            } else {
-                                None
-                            }
-                        } else {
-                            None
-                        }
-                    }
-                }
+                Cell::Asteroid => self.can_trace((sx, sy), target)
             }
         }).collect();
         deltas.sort_by(|a, b| angle(*a).partial_cmp(&angle(*b)).expect("cannot compare floats"));
@@ -133,6 +123,7 @@ impl CellMap {
         (sx + dx, sy + dy)
     }
 
+    /// Iterate over all the cells as ((x, y), body)
     fn iter(&self) -> CellMapIter {
         CellMapIter { map: self, index: 0 }
     }
@@ -235,9 +226,9 @@ fn main() {
     }).max_by_key(|&(_, visible)| visible).expect("empty input");
     println!("{}", visible);
 
-    // because we have to find the 200th and visible count > 200
-    // we can do this in just one turn. simply find the 200th visible
-    // one (sorted iteration by angle), no need to blast anything
+    // Because we have to find the 200th and (visible count > 200)
+    // we can do this in just one turn. Simply find the 200th visible
+    // one (sorted iteration by angle), no need to blast anything.
     let (x, y) = map.find_nth_visible(pos, 199);
     println!("{}", x * 100 + y);
 }
