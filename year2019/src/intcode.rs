@@ -9,6 +9,14 @@ enum ParameterMode {
     Relative = 2
 }
 
+#[derive(Copy, Clone, Debug)]
+pub enum StepResult {
+    Continue,
+    NeedInput,
+    Output(i64),
+    CaughtFire
+}
+
 #[derive(Clone, Debug)]
 pub struct Program {
     memory: Vec<i64>,
@@ -143,7 +151,7 @@ impl Program {
     }
 
     /// Step the program by reading and executing one instruction.
-    pub fn step(&mut self) -> bool {
+    pub fn step(&mut self) -> StepResult {
         let (ins, modes) = self.read_ins();
         self.pc += match ins {
             1 => { // add
@@ -158,12 +166,13 @@ impl Program {
                     self.in_pos += 1;
                     2
                 } else {
-                    return false; // halt, we need more input
+                    return StepResult::NeedInput;
                 }
             },
             4 => { // write
                 self.stdout = self.input(1, modes[0]);
-                2
+                self.pc += 2;
+                return StepResult::Output(self.stdout);
             },
             5 => { // jnz
                 if self.input(1, modes[0]) != 0 {
@@ -192,19 +201,23 @@ impl Program {
                 2
             }
             99 => { // hcf
-                return false;
+                return StepResult::CaughtFire;
             },
             _ => {
                 1
             }
         };
 
-        true
+        StepResult::Continue
     }
 
-    /// Run the program until it halts.
+    /// Run the program until it halts or needs input.
     pub fn run(&mut self) {
-        while self.step() {
+        loop {
+            match self.step() {
+                StepResult::Continue | StepResult::Output(_) => continue,
+                StepResult::NeedInput | StepResult::CaughtFire => break
+            }
         }
     }
 }
