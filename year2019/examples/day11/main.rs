@@ -1,6 +1,7 @@
 use year2019::intcode::{Program, StepResult};
 use std::collections::HashMap;
 use std::convert::Into;
+use std::fmt;
 
 #[derive(Clone, Copy, Debug)]
 enum PaintColor {
@@ -106,8 +107,12 @@ impl Painting {
         }
     }
 
+    fn color(&self, pos: &Position) -> PaintColor {
+        *self.map.get(pos).unwrap_or(&PaintColor::White)
+    }
+
     fn current_color(&self) -> PaintColor {
-        *self.map.get(&self.pos).unwrap_or(&PaintColor::Black)
+        self.color(&self.pos)
     }
 
     fn set_color(&mut self, color: PaintColor) {
@@ -144,9 +149,38 @@ impl Painting {
     }
 }
 
+impl fmt::Display for Painting {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Find min-max positions (top-left corner, bottom-right corner)
+        let mut x0 = i32::max_value();
+        let mut x1 = i32::min_value();
+        let mut y0 = i32::max_value();
+        let mut y1 = i32::min_value();
+        for pos in self.map.keys() {
+            x0 = x0.min(pos.x);
+            x1 = x1.max(pos.x);
+            y0 = y0.min(pos.y);
+            y1 = y1.max(pos.y);
+        }
+
+        for y in y0..=y1 {
+            for x in x0..=x1 {
+                f.write_str(match self.color(&Position::new(x, y)) {
+                    PaintColor::Black => " ",
+                    PaintColor::White => "█"
+                })?;
+            }
+            f.write_str("\n")?;
+        }
+
+        Ok(())
+    }
+}
+
 fn main() {
     let mut program = Program::from_stdin();
     let mut painting = Painting::new();
     painting.paint(&mut program);
     println!("{}", painting.count_painted());
+    println!("{}", painting);
 }
