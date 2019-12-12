@@ -1,6 +1,7 @@
 use std::io::{stdin, Read};
 use std::ops::Index;
 use std::iter::Iterator;
+use year2019::gcd;
 
 #[derive(Clone, Copy, Debug)]
 enum Cell {
@@ -191,29 +192,6 @@ fn read_input() -> CellMap {
     let width = width.expect("empty input");
     let height = cells.len() / width;
     CellMap { cells, width, height }
-}
-
-fn gcd(mut a: i32, mut b: i32) -> i32 {
-    if a < 0 {
-        a = -a;
-    }
-    if b < 0 {
-        b = -b;
-    }
-
-    if a == 0 || b == 0 {
-        return a.max(b).max(1);
-    }
-
-    while a != b {
-        if a > b {
-            a -= b;
-        } else {
-            b -= a;
-        }
-    }
-
-    a
 }
 
 fn main() {

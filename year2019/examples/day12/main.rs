@@ -3,23 +3,24 @@ use std::str::FromStr;
 use std::num::ParseIntError;
 use std::cmp::Ordering;
 use std::fmt;
+use year2019::lcm;
 
 const STEP_COUNT: usize = 1000;
 
-#[derive(PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 struct Vec3 {
     x: i32,
     y: i32,
     z: i32
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 struct Body {
     pos: Vec3,
     vel: Vec3
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct System {
     bodies: Vec<Body>,
     step: usize
@@ -136,6 +137,38 @@ impl System {
         self.step += 1;
     }
 
+    fn find_period(&mut self) -> Vec3 {
+        let mut x_period = None;
+        let mut y_period = None;
+        let mut z_period = None;
+
+        let original = self.bodies.clone();
+        while x_period.is_none() || y_period.is_none() || z_period.is_none() {
+            self.step();
+            if x_period.is_none() {
+                if original.iter().zip(self.bodies.iter()).all(|(ori, new)| new.pos.x == ori.pos.x && new.vel.x == new.vel.x) {
+                    x_period = Some(self.step as i32 + 1);
+                }
+            }
+            if y_period.is_none() {
+                if original.iter().zip(self.bodies.iter()).all(|(ori, new)| new.pos.y == ori.pos.y && new.vel.y == new.vel.y) {
+                    y_period = Some(self.step as i32 + 1);
+                }
+            }
+            if z_period.is_none() {
+                if original.iter().zip(self.bodies.iter()).all(|(ori, new)| new.pos.z == ori.pos.z && new.vel.z == new.vel.z) {
+                    z_period = Some(self.step as i32 + 1);
+                }
+            }
+        }
+
+        Vec3 {
+            x: x_period.unwrap(),
+            y: y_period.unwrap(),
+            z: z_period.unwrap()
+        }
+    }
+
     fn total_energy(&self) -> i32 {
         self.bodies.iter().map(|body| body.total_energy()).sum()
     }
@@ -164,10 +197,15 @@ fn read_input() -> System {
 }
 
 fn main() {
-    let mut system = read_input();
+    let original = read_input();
+
+    let mut system = original.clone();
     for _ in 0..STEP_COUNT {
         system.step();
     }
-
     println!("{}", system.total_energy());
+
+    let mut system = original.clone();
+    let period = system.find_period();
+    println!("{}", lcm(period.x as i64, lcm(period.y as i64, period.z as i64)));
 }
