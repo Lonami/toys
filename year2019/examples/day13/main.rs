@@ -36,6 +36,8 @@ enum OutputState {
 struct Game {
     map: HashMap<Position, Tile>,
     pos: Position,
+    ball_pos: Position,
+    paddle_pos: Position,
     score: i64,
     state: OutputState,
 }
@@ -64,6 +66,8 @@ impl Game {
         Self {
             map: HashMap::new(),
             pos: Position::new(0, 0),
+            ball_pos: Position::new(0, 0),
+            paddle_pos: Position::new(0, 0),
             score: 0,
             state: OutputState::WaitX,
         }
@@ -73,14 +77,6 @@ impl Game {
         *self.map.get(pos).unwrap_or(&Tile::Empty)
     }
 
-    fn find_ball(&self) -> Position {
-        *self.map.iter().find(|(_, v)| **v == Tile::Ball).expect("game has no ball").0
-    }
-
-    fn find_paddle(&self) -> Position {
-        *self.map.iter().find(|(_, v)| **v == Tile::HPaddle).expect("game has no paddle").0
-    }
-
     fn run(&mut self, program: &mut Program, display: bool) {
         let mut new_score = false;
         while !new_score || self.remaining_blocks() != 0 {
@@ -88,11 +84,9 @@ impl Game {
             match program.step() {
                 StepResult::Continue => continue,
                 StepResult::NeedInput => {
-                    let ball = self.find_ball();
-                    let paddle = self.find_paddle();
-                    if paddle.x < ball.x {
+                    if self.paddle_pos.x < self.ball_pos.x {
                         program.push_input(Joystick::Right as i32);
-                    } else if ball.x < paddle.x {
+                    } else if self.ball_pos.x < self.paddle_pos.x {
                         program.push_input(Joystick::Left as i32);
                     } else {
                         program.push_input(Joystick::Neutral as i32);
@@ -118,10 +112,18 @@ impl Game {
                                 let tile: Tile = value.into();
                                 self.map.insert(self.pos, tile);
 
-                                // Every time the ball is updated, if we're displaying, render
-                                if display && tile == Tile::Ball {
-                                    println!("{}", self);
-                                    std::thread::sleep(std::time::Duration::from_millis(30));
+                                match tile {
+                                    Tile::HPaddle => {
+                                        self.paddle_pos = self.pos;
+                                    },
+                                    Tile::Ball => {
+                                        self.ball_pos = self.pos;
+                                        if display {
+                                            println!("{}", self);
+                                            std::thread::sleep(std::time::Duration::from_millis(30));
+                                        }
+                                    },
+                                    _ => { }
                                 }
                             }
                             OutputState::WaitX
