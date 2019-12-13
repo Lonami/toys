@@ -127,6 +127,11 @@ impl Program {
         self.memory[0]
     }
 
+    /// Set the first value in memory
+    pub fn set_first_value(&mut self, value: i32) {
+        self.memory[0] = value as i64;
+    }
+
     /// Operate on a 4-wide instruction (param1, param2, output)
     fn operate(&mut self, operation: impl Fn(i64, i64) -> i64, modes: &[ParameterMode; 3]) -> usize {
         *self.output(3, modes[2]) = operation(self.input(1, modes[0]), self.input(2, modes[1]));
