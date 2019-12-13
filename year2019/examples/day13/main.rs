@@ -155,7 +155,8 @@ impl fmt::Display for Game {
         }
 
         if cfg!(unix) {
-            f.write_str("\x1b[2J\x1b[H")?;
+            // Reset cursor pos
+            f.write_str("\x1b[H")?;
         }
         for y in y0..=y1 {
             for x in x0..=x1 {
@@ -188,8 +189,26 @@ fn main() {
     game.run(&mut program, false);
     println!("{}", game.remaining_blocks());
 
+    if display && cfg!(unix) {
+        // Get rid of cursor, reset screen
+        print!("\x1b[?25l\x1b[2J");
+    }
+
+    // The most optimal program would just find how the game
+    // calculates the score (there seems to be a part in memory
+    // with all the blocks around the middle, and another with
+    // the scores in the end), and just add them all without
+    // playing. But that's not (as) fun.
     program.reset();
     program.set_first_value(2);
     game.run(&mut program, display);
+
+    if display && cfg!(unix) {
+        // Bring cursor back, reset screen
+        // Ideally this would work with Ctrl+C
+        print!("\x1b[?25h\x1b[2J");
+    }
+
+
     println!("{}", game.score);
 }
