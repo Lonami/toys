@@ -1,6 +1,6 @@
 use std::io::{stdin, Read};
 
-const MEMORY_SIZE: usize = 2048;
+const MEMORY_SIZE: usize = 4096;
 
 #[derive(Copy, Clone, Debug)]
 enum ParameterMode {
@@ -47,11 +47,11 @@ impl Program {
             .lock()
             .read_to_string(&mut buffer).expect("error while reading input file");
 
-        let mut memory: Vec<i64> = buffer
+        let mut memory = Vec::with_capacity(MEMORY_SIZE);
+        memory.extend(buffer
             .trim_end()
             .split(',')
-            .map(|item| item.trim().parse::<i64>().expect("malformed input"))
-            .collect();
+            .map(|item| item.trim().parse::<i64>().expect("malformed input")));
 
         while memory.len() < MEMORY_SIZE {
             memory.push(0);
