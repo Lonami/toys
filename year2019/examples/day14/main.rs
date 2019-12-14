@@ -98,7 +98,8 @@ fn read_input() -> ReactionMap {
 }
 
 fn needed_ore(reactions: &ReactionMap, goal: &Chemical) -> i64 {
-    let ore = &Chemical::new(0, "ORE");
+    // (We only do this so we can do ore.name)
+    let ore = Chemical::new(0, "ORE");
 
     // For (name), how much (quantity) left do we need?
     // We might have more than enough, in which case it's negative.
@@ -111,7 +112,8 @@ fn needed_ore(reactions: &ReactionMap, goal: &Chemical) -> i64 {
     loop {
         // Is all we need ore? If that's the case, break the loop because we are done.
         if need_map.iter().all(|(name, need)| if *name == ore.name { *need > 0 } else { *need <= 0 }) {
-            break *need_map.get(&ore.name).unwrap_or(&0);
+            // Remove the ore need from the map (because it is no longer needed, we just consumed it)
+            break need_map.remove(&ore.name).unwrap_or(0);
         }
 
         // We will have a clean set of new needs
@@ -141,7 +143,54 @@ fn needed_ore(reactions: &ReactionMap, goal: &Chemical) -> i64 {
     }
 }
 
+// This is REALLY slow
+fn produce_fuel(reactions: &ReactionMap, mut remaining_ore: i64) -> i64 {
+    let mut produced_fuel = 0;
+
+    // (We only do this so we can do ore.name and fuel.name)
+    let ore = Chemical::new(0, "ORE");
+    let fuel = Chemical::new(1, "FUEL");
+
+    let mut need_map: HashMap<u64, i64> = HashMap::with_capacity(reactions.len());
+    let mut new_needs: HashMap<u64, i64> = HashMap::with_capacity(reactions.len());
+
+    // Do the same as needed_ore for as long as we have ore remaining
+    while remaining_ore > 0 {
+        need_map.insert(fuel.name, 1);
+        produced_fuel += 1;
+        remaining_ore -= loop {
+            if need_map.iter().all(|(name, need)| if *name == ore.name { *need > 0 } else { *need <= 0 }) {
+                break need_map.remove(&ore.name).unwrap_or(0);
+            }
+            new_needs.clear();
+            for (name, need) in need_map.iter_mut() {
+                if *name != ore.name && *need > 0 {
+                    let reaction = &reactions[name];
+                    while *need > 0 {
+                        *need -= reaction.output.quantity;
+                        for input in reaction.inputs.iter() {
+                            *new_needs.entry(input.name).or_insert(0) += input.quantity;
+                        }
+                    }
+                }
+            }
+            for (name, need) in new_needs.iter() {
+                *need_map.entry(*name).or_insert(0) += need;
+            }
+        }
+    }
+
+    if remaining_ore < 0 {
+        // Physics don't allow negative quantity, so we actually produced one fuel less
+        produced_fuel - 1
+    } else {
+        // Ore left is 0, we produced just enough
+        produced_fuel
+    }
+}
+
 fn main() {
     let reactions = read_input();
     println!("{}", needed_ore(&reactions, &Chemical::new(1, "FUEL")));
+    println!("{}", produce_fuel(&reactions, 1000000000000));
 }
