@@ -15,6 +15,9 @@ struct Reaction {
 // Output name -> Reaction triggering it
 type ReactionMap = HashMap<u64, Reaction>;
 
+// Chemical name -> Quantity needed for it
+type NeedMap = HashMap<u64, i64>;
+
 impl Chemical {
     fn new_raw(quantity: i64, name: u64) -> Self {
         Self { quantity, name }
@@ -97,18 +100,19 @@ fn read_input() -> ReactionMap {
         .collect()
 }
 
-fn needed_ore(reactions: &ReactionMap, goal: &Chemical) -> i64 {
-    // (We only do this so we can do ore.name)
-    let ore = Chemical::new(0, "ORE");
-
-    // For (name), how much (quantity) left do we need?
+/// Solve the needs in `need_map` with the auxiliary `new_needs` (to avoid allocations),
+/// based on the known `reactions`.
+fn solve_needs(reactions: &ReactionMap, need_map: &mut NeedMap, new_needs: &mut NeedMap) -> i64 {
+    // `need_map`: For `name`, how much `quantity` left do we need?
     // We might have more than enough, in which case it's negative.
-    let mut need_map: HashMap<u64, i64> = HashMap::with_capacity(reactions.len());
-    need_map.insert(goal.name, goal.quantity);
-
-    // We will need an auxiliary new need map because we can't update need_map while we iterate it
-    let mut new_needs: HashMap<u64, i64> = HashMap::with_capacity(reactions.len());
-
+    // Since the `need_map` will be reused, this "more than enough"
+    // is necessary (and it indicates "we have extra, maybe don't generate more").
+    //
+    // `new_needs`:  We will need an auxiliary new need map because we can't
+    // update `need_map` while we iterate it.
+    //
+    // (We only do this so we can do `ore.name`)
+    let ore = Chemical::new(0, "ORE");
     loop {
         // Is all we need ore? If that's the case, break the loop because we are done.
         if need_map.iter().all(|(name, need)| if *name == ore.name { *need > 0 } else { *need <= 0 }) {
@@ -128,6 +132,7 @@ fn needed_ore(reactions: &ReactionMap, goal: &Chemical) -> i64 {
                 // Produce the reaction for as long as we need it.
                 // The reaction will cause us to update our need map.
                 while *need > 0 {
+                    // TODO remove loop, use math to multiply times as many times as we need
                     *need -= reaction.output.quantity;
                     for input in reaction.inputs.iter() {
                         *new_needs.entry(input.name).or_insert(0) += input.quantity;
@@ -143,41 +148,28 @@ fn needed_ore(reactions: &ReactionMap, goal: &Chemical) -> i64 {
     }
 }
 
+fn needed_ore(reactions: &ReactionMap, goal: &Chemical) -> i64 {
+    let mut need_map: HashMap<u64, i64> = HashMap::with_capacity(reactions.len());
+    let mut new_needs: HashMap<u64, i64> = HashMap::with_capacity(reactions.len());
+
+    need_map.insert(goal.name, goal.quantity);
+    solve_needs(&reactions, &mut need_map, &mut new_needs)
+}
+
 // This is REALLY slow
 fn produce_fuel(reactions: &ReactionMap, mut remaining_ore: i64) -> i64 {
     let mut produced_fuel = 0;
 
-    // (We only do this so we can do ore.name and fuel.name)
-    let ore = Chemical::new(0, "ORE");
+    // (We only do this so we can do `fuel.name`)
     let fuel = Chemical::new(1, "FUEL");
 
     let mut need_map: HashMap<u64, i64> = HashMap::with_capacity(reactions.len());
     let mut new_needs: HashMap<u64, i64> = HashMap::with_capacity(reactions.len());
-
-    // Do the same as needed_ore for as long as we have ore remaining
     while remaining_ore > 0 {
+        // TODO better initial estimate
         need_map.insert(fuel.name, 1);
         produced_fuel += 1;
-        remaining_ore -= loop {
-            if need_map.iter().all(|(name, need)| if *name == ore.name { *need > 0 } else { *need <= 0 }) {
-                break need_map.remove(&ore.name).unwrap_or(0);
-            }
-            new_needs.clear();
-            for (name, need) in need_map.iter_mut() {
-                if *name != ore.name && *need > 0 {
-                    let reaction = &reactions[name];
-                    while *need > 0 {
-                        *need -= reaction.output.quantity;
-                        for input in reaction.inputs.iter() {
-                            *new_needs.entry(input.name).or_insert(0) += input.quantity;
-                        }
-                    }
-                }
-            }
-            for (name, need) in new_needs.iter() {
-                *need_map.entry(*name).or_insert(0) += need;
-            }
-        }
+        remaining_ore -= solve_needs(&reactions, &mut need_map, &mut new_needs);
     }
 
     if remaining_ore < 0 {
