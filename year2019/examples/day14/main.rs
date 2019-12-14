@@ -129,14 +129,14 @@ fn solve_needs(reactions: &ReactionMap, need_map: &mut NeedMap, new_needs: &mut 
                 // We still need more for this. What reaction produces this?
                 let reaction = &reactions[name];
 
-                // Produce the reaction for as long as we need it.
-                // The reaction will cause us to update our need map.
-                while *need > 0 {
-                    // TODO remove loop, use math to multiply times as many times as we need
-                    *need -= reaction.output.quantity;
-                    for input in reaction.inputs.iter() {
-                        *new_needs.entry(input.name).or_insert(0) += input.quantity;
-                    }
+                // This reaction can produce `quantity`, and we have `need` units.
+                // How many times do we need to react?
+                let times = (*need + (reaction.output.quantity - 1)) / (reaction.output.quantity);
+
+                // React that many `times`
+                *need -= reaction.output.quantity * times;
+                for input in reaction.inputs.iter() {
+                    *new_needs.entry(input.name).or_insert(0) += input.quantity * times;
                 }
             }
         }
