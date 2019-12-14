@@ -156,7 +156,6 @@ fn needed_ore(reactions: &ReactionMap, goal: &Chemical) -> i64 {
     solve_needs(&reactions, &mut need_map, &mut new_needs)
 }
 
-// This is REALLY slow
 fn produce_fuel(reactions: &ReactionMap, mut remaining_ore: i64) -> i64 {
     let mut produced_fuel = 0;
 
@@ -165,8 +164,27 @@ fn produce_fuel(reactions: &ReactionMap, mut remaining_ore: i64) -> i64 {
 
     let mut need_map: HashMap<u64, i64> = HashMap::with_capacity(reactions.len());
     let mut new_needs: HashMap<u64, i64> = HashMap::with_capacity(reactions.len());
+
+    // How much ore do we need to produce one fuel? This is the worst ore-to-fuel ratio.
+    let ore_for_one_fuel = needed_ore(&reactions, &Chemical::new(1, "FUEL"));
+
+    while remaining_ore >= ore_for_one_fuel {
+        // In the worst case, we need this much amount of ore for one fuel.
+        // So we know that, at least, we can produce `(remaining_ore / ore_for_one_fuel)` fuel.
+        let worst_case_produces = remaining_ore / ore_for_one_fuel;
+        need_map.insert(fuel.name, worst_case_produces);
+        produced_fuel += worst_case_produces;
+        let real_ore_cost = solve_needs(&reactions, &mut need_map, &mut new_needs);
+        remaining_ore -= real_ore_cost;
+        // However, when producing one fuel, we also produce a lot of by-products.
+        // Which means the cost for the first fuel may reduce the cost for the next.
+        // All in all, to produce as much fuel in the worst case scenario will cost
+        // us, at worst, all the fuel, and at best, we have remaining.
+    }
+
+    // We don't have enough ore for our worst-case scenario.
+    // Keep trying to get fuel, one by one, until we no longer can.
     while remaining_ore > 0 {
-        // TODO better initial estimate
         need_map.insert(fuel.name, 1);
         produced_fuel += 1;
         remaining_ore -= solve_needs(&reactions, &mut need_map, &mut new_needs);
