@@ -4,6 +4,7 @@ use std::convert::Into;
 use std::fmt;
 use std::ops::Add;
 
+// How big is the map?
 const RADIUS: i32 = 20;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -118,8 +119,9 @@ impl Drone {
         *self.map.get(pos).unwrap_or(&Tile::Unknown)
     }
 
-    // Wall follower with right hand seems to work
+    // Wall follower with right hand seems to work (left hand doesn't, though…)
     fn find_oxygen(&mut self, program: &mut Program, display: bool) {
+        let mut found = false;
         loop {
             match program.step() {
                 StepResult::Continue => continue,
@@ -152,21 +154,21 @@ impl Drone {
                         DroidStatus::Moved => {
                             // We successfully moved, so we know this tile is empty.
                             self.pos = self.pos + self.dir;
-                            self.map.insert(self.pos, Tile::Empty);
+                            if *self.map.entry(self.pos).or_insert(Tile::Empty) == Tile::Home {
+                                break;
+                            }
                         },
                         DroidStatus::MovedOnOxygen => {
                             // We successfully moved *and* found the oxygen!
                             self.pos = self.pos + self.dir;
                             self.map.insert(self.pos, Tile::Oxygen);
-
-                            // Stop now and just find the shortest route
-                            // which will hopefully be our first one.
-                            break;
+                            found = true;
                         },
                     }
-                    if display {
+                    if display && !found {
+                        // Not found yet, display on every step
                         println!("{}", self);
-                        std::thread::sleep(std::time::Duration::from_millis(30));
+                        std::thread::sleep(std::time::Duration::from_millis(16));
                     }
                 },
                 StepResult::CaughtFire => break
@@ -177,6 +179,7 @@ impl Drone {
     fn find_solution(&mut self, display: bool) -> usize {
         // Flood the dead-ends (those with 3 walls) by placing another wall
         // Then, once all have been flooded, count how many steps must be taken.
+        let original = self.map.clone();
         let dirs = [Direction::North, Direction::East, Direction::South, Direction::West];
         let mut dead_ends = Vec::new();
         loop {
@@ -195,14 +198,50 @@ impl Drone {
             }
             if display {
                 println!("{}", self);
-                std::thread::sleep(std::time::Duration::from_millis(30));
+                std::thread::sleep(std::time::Duration::from_millis(16));
             }
         };
 
-        self.map.values().filter(|t| match t {
+        let result = self.map.values().filter(|t| match t {
             Tile::Unknown | Tile::Wall => false,
             Tile::Home | Tile::Empty | Tile::Oxygen => true
-        }).count() - 1
+        }).count() - 1;
+
+        // Restore our original map without the flood (we modify it for display and self.tile)
+        self.map = original;
+
+        result
+    }
+
+    fn flood_oxygen(&mut self, display: bool) -> usize {
+        // Flood the oxygen (those empty with any oxygen nearby) by placing oxygen.
+        // Then, once all have been flooded, return how many steps it took.
+        let original = self.map.clone();
+        let dirs = [Direction::North, Direction::East, Direction::South, Direction::West];
+        let mut fillable_ends = Vec::new();
+        for step_count in 0.. {
+            fillable_ends.clear();
+            for (pos, _) in self.map.iter().filter(|(_, tile)| **tile == Tile::Empty) {
+                if dirs.iter().any(|dir| self.tile(&(*pos + *dir)) == Tile::Oxygen) {
+                    fillable_ends.push(*pos);
+                }
+            }
+            if fillable_ends.is_empty() {
+                // Restore our original map without the flood (we modify it for display and self.tile)
+                self.map = original;
+                return step_count;
+            }
+
+            for end in fillable_ends.iter() {
+                self.map.insert(*end, Tile::Oxygen);
+            }
+            if display {
+                println!("{}", self);
+                std::thread::sleep(std::time::Duration::from_millis(16));
+            }
+        };
+
+        panic!("the labyrinth is infinite");
     }
 }
 
@@ -254,5 +293,7 @@ fn main() {
     let mut program = Program::from_stdin();
     let mut game = Drone::new();
     game.find_oxygen(&mut program, display);
+
     println!("{}", game.find_solution(display));
+    println!("{}", game.flood_oxygen(display));
 }
