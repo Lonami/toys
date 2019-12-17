@@ -4,6 +4,7 @@ use std::ops::Add;
 use std::fmt;
 
 const MAX_INPUT: usize = 20;
+const MAX_FUNCTIONS: usize = 3;
 
 #[derive(Clone, Copy)]
 enum Direction {
@@ -292,76 +293,49 @@ fn find_repeating_seqs<'a>(moves: &'a Vec<Movement>, offset: usize) -> Vec<&'a [
         .collect()
 }
 
-/// Find 3 "functions" (sequences that appear twice or more)
-fn find_functions<'a>(moves: &'a Vec<Movement>) -> Solution<'a> {
-    for a in find_repeating_seqs(moves, 0) {
-        // While the current offset is `a` continue.
-        let mut offset_b = 0;
-        loop {
-            if &moves[offset_b..(offset_b + a.len())] == a {
-                offset_b += a.len();
-            } else {
+/// Find `n` "functions" (sequences that appear twice or more).
+fn find_functions<'a>(moves: &'a Vec<Movement>, n: usize) -> Solution<'a> {
+
+    /// Update `offset` and `indices` by applying `seqs` while any appears.
+    fn update_indices<'a>(moves: &'a Vec<Movement>, offset: &mut usize, indices: &mut Vec<usize>, seqs: &Vec<&'a [Movement]>) {
+        while let Some(index) = seqs.iter().position(|seq| &moves[*offset..(*offset + seq.len())] == *seq) {
+            indices.push(index);
+            *offset += seqs[index].len();
+            if *offset >= moves.len() {
                 break;
-            }
-        }
-
-        for b in find_repeating_seqs(moves, offset_b) {
-            // While the current offset is `a` or `b` continue.
-            let mut offset_c = offset_b;
-            loop {
-                if &moves[offset_c..(offset_c + a.len())] == a {
-                    offset_c += a.len();
-                } else if &moves[offset_c..(offset_c + b.len())] == b {
-                    offset_c += b.len();
-                } else {
-                    break;
-                }
-            }
-
-            for c in find_repeating_seqs(moves, offset_c) {
-                // While the current offset is `a`, `b` or `c` continue.
-                let mut offset_d = offset_c;
-                while offset_d < moves.len() {
-                    if &moves[offset_d..(offset_d + a.len())] == a {
-                        offset_d += a.len();
-                    } else if &moves[offset_d..(offset_d + b.len())] == b {
-                        offset_d += b.len();
-                    } else if &moves[offset_d..(offset_d + c.len())] == c {
-                        offset_d += c.len();
-                    } else {
-                        break;
-                    }
-                }
-
-                if offset_d >= moves.len() {
-                    // We managed to reach the end, so this is a valid combination!
-                    // Now we can return our solution. Calculate which `seq` were used again,
-                    // because we haven't been saving that information.
-                    let mut indices = Vec::new();
-                    let mut offset = 0;
-                    while offset < moves.len() {
-                        if &moves[offset..(offset + a.len())] == a {
-                            indices.push(0);
-                            offset += a.len();
-                        } else if &moves[offset..(offset + b.len())] == b {
-                            indices.push(1);
-                            offset += b.len();
-                        } else if &moves[offset..(offset + c.len())] == c {
-                            indices.push(2);
-                            offset += c.len();
-                        }
-                    }
-
-                    return Solution {
-                        indices,
-                        functions: vec![a, b, c]
-                    };
-                }
             }
         }
     }
 
-    panic!("no solution found");
+    /// Work recursively to keep an implicit stack of `indices` and `seqs` "up until now".
+    fn gen_function<'a>(moves: &'a Vec<Movement>, offset: usize, n: usize, indices: &Vec<usize>, seqs: &Vec<&'a [Movement]>) -> Option<Solution<'a>> {
+        if n == 0 {
+            // No more `seq` to generate, we're done. Do we have a solution?
+            if offset == moves.len() {
+                return Some(Solution { indices: indices.clone(), functions: seqs.clone() });
+            } else {
+                return None;
+            }
+        }
+
+        // We stll have some `n`, keep on generating `seq`.
+        for seq in find_repeating_seqs(moves, offset) {
+            let mut new_offset = offset;
+            let mut new_indices = indices.clone();
+            let mut new_seqs = seqs.clone();
+            new_seqs.push(seq);
+
+            update_indices(moves, &mut new_offset, &mut new_indices, &new_seqs);
+            if let Some(solution) = gen_function(moves, new_offset, n - 1, &new_indices, &new_seqs) {
+                return Some(solution);
+            }
+        }
+
+        // No more repeating `seq`, so this won't have a solution.
+        None
+    }
+
+    gen_function(&moves, 0, n, &vec![], &vec![]).expect("no solution found")
 }
 
 fn main() {
@@ -372,7 +346,7 @@ fn main() {
     println!("{}", robot.sum_alignment_parameters());
 
     let moves = robot.walk_path();
-    let solution = find_functions(&moves);
+    let solution = find_functions(&moves, MAX_FUNCTIONS);
 
     program.reset();
     program.set_first_value(2);
