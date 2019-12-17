@@ -4,7 +4,6 @@ use std::ops::Add;
 use std::fmt;
 
 const MAX_INPUT: usize = 20;
-const MAX_METHODS: usize = 3;
 
 #[derive(Clone, Copy)]
 enum Direction {
@@ -28,6 +27,8 @@ enum Movement {
     Forward(usize)
 }
 
+struct Sequence<'a>(&'a [Movement]);
+
 struct Robot {
     tiles: Vec<Tile>,
     width: usize,
@@ -40,6 +41,12 @@ struct Robot {
 enum Tile {
     Space,
     Scaffold
+}
+
+struct Solution<'a> {
+    /// Ordered indices on when to apply the functions
+    indices: Vec<usize>,
+    functions: Vec<&'a [Movement]>
 }
 
 impl Direction {
@@ -124,6 +131,29 @@ impl fmt::Display for Movement {
     }
 }
 
+impl fmt::Display for Sequence<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for mov in self.0.iter().take(self.0.len() - 1) {
+            write!(f, "{},", mov)?;
+        }
+        write!(f, "{}", self.0[self.0.len() - 1])
+    }
+}
+
+impl fmt::Display for Solution<'_> {
+    fn fmt(&self, mut f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for (i, index) in self.indices.iter().enumerate() {
+            f.write_str(&"ABC"[*index..*index + 1])?;
+            f.write_str(if i + 1 == self.indices.len() { "\n" } else { "," })?;
+        }
+        for function in self.functions.iter() {
+            Sequence(function).fmt(&mut f)?;
+            f.write_str("\n")?;
+        }
+        f.write_str("n\n")
+    }
+}
+
 impl Robot {
     fn new(program: &mut Program) -> Self {
         let mut tiles = Vec::with_capacity(2048);
@@ -188,52 +218,15 @@ impl Robot {
         (0..self.tiles.len()).map(|i| self.alignment_parameter(i)).sum()
     }
 
-    fn determine_methods(&mut self) {
-        // We need to walk over all the scaffolds.
-        //
-        // For this, we will generate a single string of movements,
-        // passing through intersections without turning and only
-        // turning when a scaffold ends.
+    /// Walk over all scaffolds, and return a list of movements.
+    fn walk_path(&mut self) -> Vec<Movement> {
         let mut moves = Vec::new();
         while let Some(movement) = self.determine_move() {
             moves.push(movement);
             self.apply_move(movement);
         }
 
-        /// Does the sequence fit within the limit?
-        fn is_sequence_valid(seq: &[Movement]) -> bool {
-            let commas = seq.len() - 1;
-            let move_cost = seq.iter().map(|mov| mov.char_cost()).sum::<usize>();
-            (move_cost + commas) <= MAX_INPUT
-        }
-
-        /// Find valid sequences at `offset`
-        fn find_valid_seqs(moves: &Vec<Movement>, offset: usize) -> Vec<usize> {
-            // Half the input will be commas which are unusable to us.
-            (2..=(MAX_INPUT / 2))
-                .filter(|len| is_sequence_valid(&moves[offset..(offset + len)]))
-                .collect()
-        }
-
-        for m in moves.iter().take(moves.len() - 1) {
-            eprint!("{},", m);
-        }
-        eprintln!("{}", moves[moves.len() - 1]);
-        
-        // Of course, the solution is obvious!
-        // TODO Instead of doing it by hand find a way to generate this
-        /*
-        L,12,L,12,R,4,
-        R,10,R,6,R,4,R,4,
-        L,12,L,12,R,4,
-        R,6,L,12,L,12,
-        R,10,R,6,R,4,R,4,
-        L,12,L,12,R,4,
-        R,10,R,6,R,4,R,4,
-        R,6,L,12,L,12,
-        R,6,L,12,L,12,
-        R,10,R,6,R,4,R,4,
-        */
+        moves
     }
 
     fn can_walk_to(&self, pos: &Position) -> bool {
@@ -276,6 +269,101 @@ impl Robot {
     }
 }
 
+/// Does the `seq` fit within the character limit?
+fn is_sequence_valid(seq: &[Movement]) -> bool {
+    let commas = seq.len() - 1;
+    let move_cost = seq.iter().map(|mov| mov.char_cost()).sum::<usize>();
+    (move_cost + commas) <= MAX_INPUT
+}
+
+/// Return all `offset` where this `seq` occurs.
+fn find_offsets(moves: &Vec<Movement>, seq: &[Movement]) -> Vec<usize> {
+    (0..(moves.len() - seq.len()))
+        .filter(|offset| &moves[*offset..(*offset + seq.len())] == seq)
+        .collect()
+}
+
+/// Return all `seq` that appear twice or more at `offset`, in descending length.
+fn find_repeating_seqs<'a>(moves: &'a Vec<Movement>, offset: usize) -> Vec<&'a [Movement]> {
+    (1..=(MAX_INPUT / 2))
+        .rev()
+        .map(|len| &moves[offset..(offset + len)])
+        .filter(|seq| is_sequence_valid(seq) && find_offsets(moves, seq).len() > 1)
+        .collect()
+}
+
+/// Find 3 "functions" (sequences that appear twice or more)
+fn find_functions<'a>(moves: &'a Vec<Movement>) -> Solution<'a> {
+    for a in find_repeating_seqs(moves, 0) {
+        // While the current offset is `a` continue.
+        let mut offset_b = 0;
+        loop {
+            if &moves[offset_b..(offset_b + a.len())] == a {
+                offset_b += a.len();
+            } else {
+                break;
+            }
+        }
+
+        for b in find_repeating_seqs(moves, offset_b) {
+            // While the current offset is `a` or `b` continue.
+            let mut offset_c = offset_b;
+            loop {
+                if &moves[offset_c..(offset_c + a.len())] == a {
+                    offset_c += a.len();
+                } else if &moves[offset_c..(offset_c + b.len())] == b {
+                    offset_c += b.len();
+                } else {
+                    break;
+                }
+            }
+
+            for c in find_repeating_seqs(moves, offset_c) {
+                // While the current offset is `a`, `b` or `c` continue.
+                let mut offset_d = offset_c;
+                while offset_d < moves.len() {
+                    if &moves[offset_d..(offset_d + a.len())] == a {
+                        offset_d += a.len();
+                    } else if &moves[offset_d..(offset_d + b.len())] == b {
+                        offset_d += b.len();
+                    } else if &moves[offset_d..(offset_d + c.len())] == c {
+                        offset_d += c.len();
+                    } else {
+                        break;
+                    }
+                }
+
+                if offset_d >= moves.len() {
+                    // We managed to reach the end, so this is a valid combination!
+                    // Now we can return our solution. Calculate which `seq` were used again,
+                    // because we haven't been saving that information.
+                    let mut indices = Vec::new();
+                    let mut offset = 0;
+                    while offset < moves.len() {
+                        if &moves[offset..(offset + a.len())] == a {
+                            indices.push(0);
+                            offset += a.len();
+                        } else if &moves[offset..(offset + b.len())] == b {
+                            indices.push(1);
+                            offset += b.len();
+                        } else if &moves[offset..(offset + c.len())] == c {
+                            indices.push(2);
+                            offset += c.len();
+                        }
+                    }
+
+                    return Solution {
+                        indices,
+                        functions: vec![a, b, c]
+                    };
+                }
+            }
+        }
+    }
+
+    panic!("no solution found");
+}
+
 fn main() {
     let mut program = Program::from_stdin();
     program.save();
@@ -283,15 +371,12 @@ fn main() {
     let mut robot = Robot::new(&mut program);
     println!("{}", robot.sum_alignment_parameters());
 
+    let moves = robot.walk_path();
+    let solution = find_functions(&moves);
+
     program.reset();
     program.set_first_value(2);
-    program.set_stdin(b"A,B,A,C,B,A,B,C,C,B
-L,12,L,12,R,4
-R,10,R,6,R,4,R,4
-R,6,L,12,L,12
-y
-".iter().map(|b| *b as i32).collect());
-    
+    program.set_stdin(solution.to_string().as_bytes().iter().map(|c| *c as i32).collect());
     program.run();
     println!("{}", program.stdout());
 }
