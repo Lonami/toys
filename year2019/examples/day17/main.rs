@@ -153,7 +153,6 @@ impl Robot {
                         },
                         _ => panic!("malformed output has unknown char")
                     }
-                    print!("{}", value as u8 as char);
                 },
                 StepResult::CaughtFire => break
             }
@@ -208,93 +207,33 @@ impl Robot {
             (move_cost + commas) <= MAX_INPUT
         }
 
-        /// How many times does the sequence at `offset` of `len` repeat in `moves`?
-        fn count_repeats(moves: &Vec<Movement>, offset: usize, len: usize) -> usize {
-            let seq = &moves[offset..offset + len];
-            ((offset + len)..(moves.len() - len))
-                .filter(|index| {
-                    let new = &moves[*index..(*index + len)];
-                    seq.iter().zip(new.iter()).all(|(x, y)| x == y)
-                })
-                .count()
-        }
-
-        /// Find valid sequences (sorted in descending length) at `offset`
+        /// Find valid sequences at `offset`
         fn find_valid_seqs(moves: &Vec<Movement>, offset: usize) -> Vec<usize> {
             // Half the input will be commas which are unusable to us.
             (2..=(MAX_INPUT / 2))
-                .rev()
                 .filter(|len| is_sequence_valid(&moves[offset..(offset + len)]))
-                //.filter(|len| count_repeats(moves, offset, *len) > 0)
                 .collect()
         }
 
-        /// Find when the sequence at `offset` of `len` stops occuring and return that offset.
-        fn find_stop_occuring(moves: &Vec<Movement>, mut offset: usize, len: usize) -> usize {
-            let seq = &moves[offset..(offset + len)];
-            loop {
-                offset += len;
-                let new = &moves[offset..(offset + len)];
-                if seq != new {
-                    break offset;
-                }
-            }
+        for m in moves.iter().take(moves.len() - 1) {
+            eprint!("{},", m);
         }
-
-        /// If these lengths are valid, return the method indices
-        fn gen_method_list(moves: &Vec<Movement>, lengths: &Vec<usize>) -> Option<Vec<usize>> {
-            let mut sequences = Vec::with_capacity(lengths.len());
-            let mut offset = 0;
-            for len in lengths {
-                sequences.push(&moves[offset..offset + len]);
-                offset += len;
-            }
-
-            let mut result = Vec::new();
-            offset = 0;
-            while offset < moves.len() {
-                // Can we apply any sequence at `offset`? If we can save the index,
-                // if not return `None` because these lengths are not valid.
-                //
-                // If the sequence starts with the following moves, then it applies.
-                if let Some(index) = sequences.iter().position(|seq| seq.starts_with(&moves[offset..])) {
-                    result.push(index);
-                } else {
-                    return None;
-                }
-            }
-
-            // We reached the end so this is valid
-            Some(result)
-        }
-
-        fn display_it(seq: &[Movement]) {
-            for (i, m) in seq.iter().enumerate() {
-                if i == seq.len() - 1 {
-                    print!("{}", m);
-                } else {
-                    print!("{},", m);
-                }
-            }
-            println!();
-        }
-
-        // Figure out what sequence lengths to use. This could be generic but
-        // we don't bother, we just need three valid sequences anyway.
-        //
-        // Iterate over all valid repeating sequences at offset 0.
-        let ao = 0;
-        for a in find_valid_seqs(&moves, ao) {
-            let bo = find_stop_occuring(&moves, ao, a);
-            for b in find_valid_seqs(&moves, bo) {
-                let co = find_stop_occuring(&moves, bo, b);
-                for c in find_valid_seqs(&moves, co) {
-                    if let Some(method) = gen_method_list(&moves, &vec![a, b, c]) {
-                        println!("Found it: {:?}", method);
-                    }
-                }
-            }
-        }
+        eprintln!("{}", moves[moves.len() - 1]);
+        
+        // Of course, the solution is obvious!
+        // TODO Instead of doing it by hand find a way to generate this
+        /*
+        L,12,L,12,R,4,
+        R,10,R,6,R,4,R,4,
+        L,12,L,12,R,4,
+        R,6,L,12,L,12,
+        R,10,R,6,R,4,R,4,
+        L,12,L,12,R,4,
+        R,10,R,6,R,4,R,4,
+        R,6,L,12,L,12,
+        R,6,L,12,L,12,
+        R,10,R,6,R,4,R,4,
+        */
     }
 
     fn can_walk_to(&self, pos: &Position) -> bool {
@@ -344,13 +283,15 @@ fn main() {
     let mut robot = Robot::new(&mut program);
     println!("{}", robot.sum_alignment_parameters());
 
-    // end each line of logic with a single newline, ASCII code 10
-    // 1. movement routine (A,B,C\n)
-    // 2. movement functions (5,L,10,R,15\n)
-    // 3. video feed (y or n)
-    // at most 20 characters (counting comma
-    robot.determine_methods();
-
     program.reset();
     program.set_first_value(2);
+    program.set_stdin(b"A,B,A,C,B,A,B,C,C,B
+L,12,L,12,R,4
+R,10,R,6,R,4,R,4
+R,6,L,12,L,12
+y
+".iter().map(|b| *b as i32).collect());
+    
+    program.run();
+    println!("{}", program.stdout());
 }
