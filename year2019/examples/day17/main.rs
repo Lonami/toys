@@ -345,40 +345,38 @@ fn find_functions<'a>(moves: &'a Vec<Movement>, n: usize) -> Solution<'a> {
         moves: &'a Vec<Movement>,
         offset: usize,
         n: usize,
-        indices: &Vec<usize>,
-        seqs: &Vec<&'a [Movement]>,
+        indices: Vec<usize>,
+        functions: Vec<&'a [Movement]>,
     ) -> Option<Solution<'a>> {
         if n == 0 {
             // No more `seq` to generate, we're done. Do we have a solution?
             if offset == moves.len() {
-                return Some(Solution {
-                    indices: indices.clone(),
-                    functions: seqs.clone(),
-                });
+                return Some(Solution { indices, functions });
             } else {
                 return None;
             }
         }
 
-        // We stll have some `n`, keep on generating `seq`.
-        for seq in find_repeating_seqs(moves, offset) {
+        // We stll have some `n`, keep on generating `function`.
+        for function in find_repeating_seqs(moves, offset) {
             let mut new_offset = offset;
             let mut new_indices = indices.clone();
-            let mut new_seqs = seqs.clone();
-            new_seqs.push(seq);
+            let mut new_functions = functions.clone();
+            new_functions.push(function);
 
-            update_indices(moves, &mut new_offset, &mut new_indices, &new_seqs);
-            if let Some(solution) = gen_function(moves, new_offset, n - 1, &new_indices, &new_seqs)
+            update_indices(moves, &mut new_offset, &mut new_indices, &new_functions);
+            if let Some(solution) =
+                gen_function(moves, new_offset, n - 1, new_indices, new_functions)
             {
                 return Some(solution);
             }
         }
 
-        // No more repeating `seq`, so this won't have a solution.
+        // No more repeating `function`, so this won't have a solution.
         None
     }
 
-    gen_function(&moves, 0, n, &vec![], &vec![]).expect("no solution found")
+    gen_function(&moves, 0, n, vec![], vec![]).expect("no solution found")
 }
 
 fn main() {
