@@ -1,7 +1,7 @@
-use year2019::intcode::{Program, StepResult};
 use std::convert::Into;
-use std::ops::Add;
 use std::fmt;
+use std::ops::Add;
+use year2019::intcode::{Program, StepResult};
 
 const MAX_INPUT: usize = 20;
 const MAX_FUNCTIONS: usize = 3;
@@ -12,7 +12,7 @@ enum Direction {
     South,
     West,
     East,
-    Tumbling
+    Tumbling,
 }
 
 #[derive(Clone, Copy)]
@@ -25,7 +25,7 @@ struct Position {
 enum Movement {
     Left,
     Right,
-    Forward(usize)
+    Forward(usize),
 }
 
 struct Sequence<'a>(&'a [Movement]);
@@ -35,19 +35,19 @@ struct Robot {
     width: usize,
     height: usize,
     pos: Position,
-    dir: Direction
+    dir: Direction,
 }
 
 #[derive(Clone, Copy, PartialEq)]
 enum Tile {
     Space,
-    Scaffold
+    Scaffold,
 }
 
 struct Solution<'a> {
     /// Ordered indices on when to apply the functions
     indices: Vec<usize>,
-    functions: Vec<&'a [Movement]>
+    functions: Vec<&'a [Movement]>,
 }
 
 impl Direction {
@@ -57,7 +57,7 @@ impl Direction {
             Direction::East => Direction::North,
             Direction::South => Direction::East,
             Direction::West => Direction::South,
-            Direction::Tumbling => Direction::Tumbling
+            Direction::Tumbling => Direction::Tumbling,
         }
     }
 
@@ -67,7 +67,7 @@ impl Direction {
             Direction::East => Direction::South,
             Direction::South => Direction::West,
             Direction::West => Direction::North,
-            Direction::Tumbling => Direction::Tumbling
+            Direction::Tumbling => Direction::Tumbling,
         }
     }
 }
@@ -96,11 +96,23 @@ impl Add<Direction> for Position {
 
     fn add(self, dir: Direction) -> Self {
         match dir {
-            Direction::North => Self { x: self.x, y: self.y.wrapping_sub(1) },
-            Direction::South => Self { x: self.x, y: self.y.wrapping_add(1) },
-            Direction::West => Self { x: self.x.wrapping_sub(1), y: self.y },
-            Direction::East => Self { x: self.x.wrapping_add(1), y: self.y },
-            Direction::Tumbling => self
+            Direction::North => Self {
+                x: self.x,
+                y: self.y.wrapping_sub(1),
+            },
+            Direction::South => Self {
+                x: self.x,
+                y: self.y.wrapping_add(1),
+            },
+            Direction::West => Self {
+                x: self.x.wrapping_sub(1),
+                y: self.y,
+            },
+            Direction::East => Self {
+                x: self.x.wrapping_add(1),
+                y: self.y,
+            },
+            Direction::Tumbling => self,
         }
     }
 }
@@ -117,7 +129,7 @@ impl Movement {
                     cost += 1;
                 }
                 cost
-            },
+            }
         }
     }
 }
@@ -145,7 +157,11 @@ impl fmt::Display for Solution<'_> {
     fn fmt(&self, mut f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (i, index) in self.indices.iter().enumerate() {
             f.write_str(&"ABC"[*index..*index + 1])?;
-            f.write_str(if i + 1 == self.indices.len() { "\n" } else { "," })?;
+            f.write_str(if i + 1 == self.indices.len() {
+                "\n"
+            } else {
+                ","
+            })?;
         }
         for function in self.functions.iter() {
             Sequence(function).fmt(&mut f)?;
@@ -166,31 +182,39 @@ impl Robot {
             match program.step() {
                 StepResult::Continue => continue,
                 StepResult::NeedInput => panic!("cannot handle input during mapgen"),
-                StepResult::Output(value) => {
-                    match value as u8 {
-                        b'.' => tiles.push(Tile::Space),
-                        b'#' => tiles.push(Tile::Scaffold),
-                        b'\n' => {
-                            if width == std::usize::MAX {
-                                width = tiles.len();
-                            } else if tiles.len() % width != 0 {
-                                panic!("malformed output has lines of different lengths");
-                            }
-                        },
-                        b'^' | b'v' | b'<' | b'>' | b'X' => {
-                            pos = Position::new(tiles.len() % width, tiles.len() / width);
-                            dir = (value as u8).into();
-                            tiles.push(if value as u8 == b'X' { Tile::Space } else { Tile::Scaffold });
-                        },
-                        _ => panic!("malformed output has unknown char")
+                StepResult::Output(value) => match value as u8 {
+                    b'.' => tiles.push(Tile::Space),
+                    b'#' => tiles.push(Tile::Scaffold),
+                    b'\n' => {
+                        if width == std::usize::MAX {
+                            width = tiles.len();
+                        } else if tiles.len() % width != 0 {
+                            panic!("malformed output has lines of different lengths");
+                        }
                     }
+                    b'^' | b'v' | b'<' | b'>' | b'X' => {
+                        pos = Position::new(tiles.len() % width, tiles.len() / width);
+                        dir = (value as u8).into();
+                        tiles.push(if value as u8 == b'X' {
+                            Tile::Space
+                        } else {
+                            Tile::Scaffold
+                        });
+                    }
+                    _ => panic!("malformed output has unknown char"),
                 },
-                StepResult::CaughtFire => break
+                StepResult::CaughtFire => break,
             }
         }
 
         let height = tiles.len() / width;
-        Self { tiles, width, height, pos, dir }
+        Self {
+            tiles,
+            width,
+            height,
+            pos,
+            dir,
+        }
     }
 
     fn alignment_parameter(&self, index: usize) -> usize {
@@ -216,7 +240,9 @@ impl Robot {
     }
 
     fn sum_alignment_parameters(&self) -> usize {
-        (0..self.tiles.len()).map(|i| self.alignment_parameter(i)).sum()
+        (0..self.tiles.len())
+            .map(|i| self.alignment_parameter(i))
+            .sum()
     }
 
     /// Walk over all scaffolds, and return a list of movements.
@@ -295,10 +321,17 @@ fn find_repeating_seqs<'a>(moves: &'a Vec<Movement>, offset: usize) -> Vec<&'a [
 
 /// Find `n` "functions" (sequences that appear twice or more).
 fn find_functions<'a>(moves: &'a Vec<Movement>, n: usize) -> Solution<'a> {
-
     /// Update `offset` and `indices` by applying `seqs` while any appears.
-    fn update_indices<'a>(moves: &'a Vec<Movement>, offset: &mut usize, indices: &mut Vec<usize>, seqs: &Vec<&'a [Movement]>) {
-        while let Some(index) = seqs.iter().position(|seq| &moves[*offset..(*offset + seq.len())] == *seq) {
+    fn update_indices<'a>(
+        moves: &'a Vec<Movement>,
+        offset: &mut usize,
+        indices: &mut Vec<usize>,
+        seqs: &Vec<&'a [Movement]>,
+    ) {
+        while let Some(index) = seqs
+            .iter()
+            .position(|seq| &moves[*offset..(*offset + seq.len())] == *seq)
+        {
             indices.push(index);
             *offset += seqs[index].len();
             if *offset >= moves.len() {
@@ -308,11 +341,20 @@ fn find_functions<'a>(moves: &'a Vec<Movement>, n: usize) -> Solution<'a> {
     }
 
     /// Work recursively to keep an implicit stack of `indices` and `seqs` "up until now".
-    fn gen_function<'a>(moves: &'a Vec<Movement>, offset: usize, n: usize, indices: &Vec<usize>, seqs: &Vec<&'a [Movement]>) -> Option<Solution<'a>> {
+    fn gen_function<'a>(
+        moves: &'a Vec<Movement>,
+        offset: usize,
+        n: usize,
+        indices: &Vec<usize>,
+        seqs: &Vec<&'a [Movement]>,
+    ) -> Option<Solution<'a>> {
         if n == 0 {
             // No more `seq` to generate, we're done. Do we have a solution?
             if offset == moves.len() {
-                return Some(Solution { indices: indices.clone(), functions: seqs.clone() });
+                return Some(Solution {
+                    indices: indices.clone(),
+                    functions: seqs.clone(),
+                });
             } else {
                 return None;
             }
@@ -326,7 +368,8 @@ fn find_functions<'a>(moves: &'a Vec<Movement>, n: usize) -> Solution<'a> {
             new_seqs.push(seq);
 
             update_indices(moves, &mut new_offset, &mut new_indices, &new_seqs);
-            if let Some(solution) = gen_function(moves, new_offset, n - 1, &new_indices, &new_seqs) {
+            if let Some(solution) = gen_function(moves, new_offset, n - 1, &new_indices, &new_seqs)
+            {
                 return Some(solution);
             }
         }
@@ -350,7 +393,14 @@ fn main() {
 
     program.reset();
     program.set_first_value(2);
-    program.set_stdin(solution.to_string().as_bytes().iter().map(|c| *c as i32).collect());
+    program.set_stdin(
+        solution
+            .to_string()
+            .as_bytes()
+            .iter()
+            .map(|c| *c as i32)
+            .collect(),
+    );
     program.run();
     println!("{}", program.stdout());
 }
