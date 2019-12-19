@@ -20,40 +20,16 @@ fn count_pulls(mut program: &mut Program, width: usize, height: usize) -> usize 
 fn find_square(mut program: &mut Program, width: usize, height: usize) -> usize {
     // The beam has to be `width * height`, so our deque
     // needs to remember the `width` across `height` rows.
-    //
-    // The `x` position of the beam at `y + 1` will be ≥ the `x` position at `y`,
-    // which means we don't need to bother going all the way from `0`.
     let mut deque = VecDeque::with_capacity(height);
-
-    enum Status {
-        WaitingBeam,
-        WaitingEnd
-    };
+    let mut last_x = 0;
 
     // There's some pesky rows early where the beam is empty. Just skip them.
     for y in 10.. {
-        let mut status = Status::WaitingBeam;
-        let mut started = 0;
-        let mut size = 0;
-
-        // TODO don't always start at 0
-        for x in 0.. {
-            let value = value_at(&mut program, x, y);
-            size += value;
-            match status {
-                Status::WaitingBeam => {
-                    if value == 1 {
-                        started = x;
-                        status = Status::WaitingEnd;
-                    }
-                },
-                Status::WaitingEnd => {
-                    if value == 0 {
-                        break;
-                    }
-                }
-            }
-        }
+        // The `x` position of the beam at `y + 1` will be ≥ the `x` position at `y`,
+        // which means we don't need to bother going all the way from `0`. Use `last_x`
+        // to find where the beam starts in this row, and then count how wide it is.
+        last_x = (last_x..).filter(|x| value_at(&mut program, *x, y) == 1).next().unwrap();
+        let size = 1 + (last_x + 1..).take_while(|x| value_at(&mut program, *x, y) == 1).count();
 
         if deque.len() == height {
             let (_, b) = deque.pop_front().unwrap();
@@ -62,7 +38,8 @@ fn find_square(mut program: &mut Program, width: usize, height: usize) -> usize 
                 return a * 10000 + (y - height);
             }
         }
-        deque.push_back((started, started + size));
+
+        deque.push_back((last_x, last_x + size));
     }
 
     panic!("exhausted all integers");
