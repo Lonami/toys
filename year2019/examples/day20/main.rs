@@ -169,6 +169,14 @@ impl Maze {
     }
 }
 
+// Possible solution for part 2:
+//
+// Each flood remembers its "level" and warping changes the level.
+//
+// Issues:
+// * Determining which gates go "up" and which go "down", which would need to be implemented.
+// * Maybe there can be concurrent floods at different levels so we would need a list of lists.
+
 impl fmt::Display for Maze {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (y, row) in self.tiles.chunks(self.width).enumerate() {
