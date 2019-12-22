@@ -5,6 +5,10 @@ use std::mem::MaybeUninit;
 const NUM_CARDS: usize = 10007;
 const WANTED_CARD: usize = 2019;
 
+const NEW_NUM_CARDS: usize = 119315717514047;
+const NEW_SHUFFLE_COUNT: usize = 101741582076661;
+const NEW_WANTED_CARD: usize = 2020;
+
 #[derive(Clone, Copy, Debug)]
 struct Card(usize);
 
