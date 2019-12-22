@@ -1,7 +1,5 @@
 use year2019::intcode::{Program, StepResult};
 
-const MAX_INSTRUCTIONS: usize = 15;
-
 // Writable boolean registers:
 //   T: Temporary
 //   J: Whether to Jump at the end
@@ -19,7 +17,11 @@ const MAX_INSTRUCTIONS: usize = 15;
 //   WALK       : (begins program)
 //
 // Gaps to jump:
+//             1111111
+//   01234567890123456
 //   #####.###########
+//   #####.#..########
+//   #####.##.########
 //   #####..#.########
 //   #####...#########
 fn walk_droid(program: &mut Program) -> Option<usize> {
@@ -57,8 +59,66 @@ WALK".split('\n').skip(1);
     }
 }
 
+// New Readonly boolean registers:
+//   E: Is there ground five tile away?
+//   F: Is there ground six tiles away?
+//   G: Is there ground seven tiles away?
+//   H: Is there ground eight tiles away?
+//   I: Is there ground nine tiles away?
+//
+// Gaps to jump:
+//             1111111
+//   01234567890123456
+//   #####.###########
+//   #####.#..########
+//   #####.##.########
+//   #####..#.########
+//   #####...#########
+//   #####.##.##..####
+//     ^...
+//         .
+//
+//       ^.
+//
+//         0123456789
+//   ......@..........
+//   #####.##.##..####
+fn run_droid(program: &mut Program) -> Option<usize> {
+    let mut lines = "
+NOT E J
+AND D J
+NOT C T
+AND T J
+NOT A T
+OR T J
+RUN".split('\n').skip(1);
+
+    loop {
+        match program.step() {
+            StepResult::Continue => continue,
+            StepResult::NeedInput => {
+                if let Some(line) = lines.next() {
+                    for c in line.as_bytes() {
+                        program.push_input(*c as i32);
+                    }
+                    program.push_input(b'\n' as i32);
+                }
+            }
+            StepResult::Output(value) => {
+                if value > 127 {
+                    break Some(value as usize)
+                } else {
+                    print!("{}", value as u8 as char);
+                }
+            },
+            StepResult::CaughtFire => break None
+        }
+    }
+}
 fn main() {
     let mut program = Program::from_stdin();
     program.save();
     println!("{}", walk_droid(&mut program).expect("failed to do it"));
+    program.reset();
+    println!("{}", run_droid(&mut program).expect("failed to run it"));
 }
