@@ -124,7 +124,7 @@ impl Painting {
             match program.step() {
                 StepResult::Continue => continue,
                 StepResult::NeedInput => {
-                    program.push_input(self.current_color() as i32);
+                    program.push_input(self.current_color() as i64);
                 },
                 StepResult::Output(value) => {
                     self.state = match self.state {

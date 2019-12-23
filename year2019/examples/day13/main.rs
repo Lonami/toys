@@ -85,11 +85,11 @@ impl Game {
                 StepResult::Continue => continue,
                 StepResult::NeedInput => {
                     if self.paddle_pos.x < self.ball_pos.x {
-                        program.push_input(Joystick::Right as i32);
+                        program.push_input(Joystick::Right as i64);
                     } else if self.ball_pos.x < self.paddle_pos.x {
-                        program.push_input(Joystick::Left as i32);
+                        program.push_input(Joystick::Left as i64);
                     } else {
-                        program.push_input(Joystick::Neutral as i32);
+                        program.push_input(Joystick::Neutral as i64);
                     }
                 },
                 StepResult::Output(value) => {

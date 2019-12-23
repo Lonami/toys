@@ -141,7 +141,7 @@ impl Drone {
                             self.dir.turn_right()
                         }
                     };
-                    program.push_input(self.dir as i32);
+                    program.push_input(self.dir as i64);
                 },
                 StepResult::Output(value) => {
                     match value.into() {

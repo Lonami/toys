@@ -396,7 +396,7 @@ fn main() {
             .to_string()
             .as_bytes()
             .iter()
-            .map(|c| *c as i32)
+            .map(|c| *c as i64)
             .collect(),
     );
     program.run();

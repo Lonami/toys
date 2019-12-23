@@ -22,7 +22,7 @@ def main(args):
     ok = True
     for day in sorted(days):
         with open('inputs/{}/input'.format(day), 'rb') as fd:
-            proc = subprocess.run(('cargo', 'run', '--example', day), stdin=fd, capture_output=True)
+            proc = subprocess.run(('cargo', 'run', '--example', day, '--release'), stdin=fd, capture_output=True)
         
         with open('outputs/{}/input'.format(day), 'rb') as fd:
             expected = fd.read()

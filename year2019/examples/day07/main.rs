@@ -3,7 +3,7 @@ use std::iter::Iterator;
 
 const AMPLIFIER_COUNT: usize = 5;
 
-struct Permutations(Vec<i32>, usize);
+struct Permutations(Vec<i64>, usize);
 
 impl Permutations {
     fn new(n: usize, start: usize) -> Self {
@@ -12,7 +12,7 @@ impl Permutations {
 }
 
 impl Iterator for Permutations {
-    type Item = Vec<i32>;
+    type Item = Vec<i64>;
 
     /// Next lexicographical permutation algorithm
     /// by Project Nayuki, 2017. Public domain.
@@ -20,7 +20,7 @@ impl Iterator for Permutations {
     fn next(&mut self) -> Option<Self::Item> {
 	    if self.0.is_empty() {
             for i in (self.1)..(self.1 + self.0.capacity()) {
-                self.0.push(i as i32);
+                self.0.push(i as i64);
             }
             return Some(self.0.clone());
 	    }
@@ -56,7 +56,7 @@ fn main() {
         let mut last_output = 0i64;
         for phase_setting in phase_settings.iter() {
             program.reset();
-            program.set_stdin(vec![*phase_setting, last_output as i32]);
+            program.set_stdin(vec![*phase_setting, last_output]);
             program.run();
             last_output = program.stdout();
         }
@@ -76,7 +76,7 @@ fn main() {
         let mut last_output = 0i64;
         while !programs[programs.len() - 1].on_fire() {
             for p in programs.iter_mut() {
-                p.push_input(last_output as i32);
+                p.push_input(last_output);
                 p.run();
                 last_output = p.stdout();
             }

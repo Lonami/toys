@@ -42,9 +42,9 @@ WALK".split('\n').skip(1);
             StepResult::NeedInput => {
                 if let Some(line) = lines.next() {
                     for c in line.as_bytes() {
-                        program.push_input(*c as i32);
+                        program.push_input(*c as i64);
                     }
-                    program.push_input(b'\n' as i32);
+                    program.push_input(b'\n' as i64);
                 }
             }
             StepResult::Output(value) => {
@@ -99,9 +99,9 @@ RUN".split('\n').skip(1);
             StepResult::NeedInput => {
                 if let Some(line) = lines.next() {
                     for c in line.as_bytes() {
-                        program.push_input(*c as i32);
+                        program.push_input(*c as i64);
                     }
-                    program.push_input(b'\n' as i32);
+                    program.push_input(b'\n' as i64);
                 }
             }
             StepResult::Output(value) => {

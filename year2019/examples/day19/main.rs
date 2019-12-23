@@ -6,7 +6,7 @@ fn value_at(program: &mut Program, x: usize, y: usize) -> usize {
     loop {
         match program.step() {
             StepResult::Continue => continue,
-            StepResult::NeedInput => program.set_stdin(vec![x as i32, y as i32]),
+            StepResult::NeedInput => program.set_stdin(vec![x as i64, y as i64]),
             StepResult::Output(value) => break value as usize,
             StepResult::CaughtFire => panic!("caught fire before output")
         }
