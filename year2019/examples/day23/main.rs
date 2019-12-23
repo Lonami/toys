@@ -104,6 +104,38 @@ impl ComputerNet {
             }
         }
     }
+
+    fn handle_nat(&mut self) -> i64 {
+        let mut packets = Vec::new();
+        let mut nat = Packet::default();
+        let mut last_y = -1;
+        loop {
+            packets.clear();
+            for computer in self.computers.iter_mut() {
+                if let Some(packet) = computer.run() {
+                    packets.push(packet);
+                }
+            }
+
+            if packets.is_empty() {
+                // All idle
+                if nat.y == last_y {
+                    return nat.y;
+                }
+                nat.dest = 0;
+                last_y = nat.y;
+                self.computers[0].feed_packet(std::mem::take(&mut nat));
+            } else {
+                while let Some(packet) = packets.pop() {
+                    if packet.dest == 255 {
+                        nat = packet;
+                    } else {
+                        self.computers[packet.dest].feed_packet(packet);
+                    }
+                }
+            }
+        }
+    }
 }
 
 fn main() {
@@ -113,4 +145,10 @@ fn main() {
         .collect());
 
     println!("{}", network.listen_y(OUTPUT_ADDR));
+
+    let mut network = ComputerNet::new((0..COMPUTER_COUNT)
+        .map(|addr| Computer::new(program.clone(), addr))
+        .collect());
+
+    println!("{}", network.handle_nat());
 }
