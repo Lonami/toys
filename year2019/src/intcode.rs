@@ -22,7 +22,7 @@ pub struct Program {
     memory: Vec<i64>,
     pc: usize,
     backup: Vec<i64>,
-    stdin: Vec<i32>,
+    stdin: Vec<i64>,
     in_pos: usize,
     relative_base: usize,
     stdout: i64
@@ -83,17 +83,17 @@ impl Program {
     }
 
     /// Change the input noun and verb of the program.
-    pub fn set_inputs(&mut self, noun: i32, verb: i32) {
+    pub fn set_inputs(&mut self, noun: i64, verb: i64) {
         self.memory[1] = noun as i64;
         self.memory[2] = verb as i64;
     }
 
     /// Set a vector from which input should be read by the program.
-    pub fn set_stdin(&mut self, input: Vec<i32>) {
+    pub fn set_stdin(&mut self, input: Vec<i64>) {
         self.stdin = input;
     }
 
-    pub fn push_input(&mut self, input: i32) {
+    pub fn push_input(&mut self, input: i64) {
         self.stdin.push(input);
     }
 
@@ -128,7 +128,7 @@ impl Program {
     }
 
     /// Set the first value in memory
-    pub fn set_first_value(&mut self, value: i32) {
+    pub fn set_first_value(&mut self, value: i64) {
         self.memory[0] = value as i64;
     }
 
