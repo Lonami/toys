@@ -22,8 +22,6 @@ struct MultiEris {
     layers: usize,
     width: usize,
     height: usize,
-    lo: usize,
-    hi: usize,
 }
 
 impl From<u8> for Tile {
@@ -129,17 +127,14 @@ impl MultiEris {
     fn new(base: &Eris, layers: usize) -> Self {
         let area = base.height * base.width;
         let mut map = vec![Tile::Empty; layers * area];
-        let lo = layers / 2;
-        let hi = lo;
+        let half = layers / 2;
 
-        map[(lo * area)..((1 + lo) * area)].clone_from_slice(&base.map[..]);
+        map[(half * area)..((1 + half) * area)].clone_from_slice(&base.map[..]);
         MultiEris {
             map,
             layers,
             width: base.width,
             height: base.height,
-            lo,
-            hi,
         }
     }
 
@@ -163,7 +158,7 @@ impl MultiEris {
             result += self.infested(layer - 1, midy, midx - 1);
         } else if x == midx + 1 && y == midy {
             for i in 0..self.height {
-                result += self.infested(layer - 1, i, self.width - 1);
+                result += self.infested(layer + 1, i, self.width - 1);
             }   
         } else {
             result += self.infested(layer, y, x - 1);
@@ -174,7 +169,7 @@ impl MultiEris {
             result += self.infested(layer - 1, midy, midx + 1);
         } else if x == midx - 1 && y == midy {
             for i in 0..self.height {
-                result += self.infested(layer - 1, i, 0);
+                result += self.infested(layer + 1, i, 0);
             }
         } else {
             result += self.infested(layer, y, x + 1);
@@ -185,7 +180,7 @@ impl MultiEris {
             result += self.infested(layer - 1, midy - 1, midx);
         } else if y == midy + 1 && x == midx {
             for j in 0..self.width {
-                result += self.infested(layer - 1, self.height - 1, j);
+                result += self.infested(layer + 1, self.height - 1, j);
             }
         } else {
             result += self.infested(layer, y - 1, x);
@@ -193,10 +188,10 @@ impl MultiEris {
 
         // Down
         if y == self.height - 1 {
-            result += self.infested(layer - 1, midy, midx + 1);
+            result += self.infested(layer - 1, midy + 1, midx);
         } else if y == midy - 1 && x == midx {
             for j in 0..self.width {
-                result += self.infested(layer - 1, 0, j);
+                result += self.infested(layer + 1, 0, j);
             }
         } else {
             result += self.infested(layer, y + 1, x);
@@ -207,9 +202,14 @@ impl MultiEris {
 
     fn tick(&mut self) {
         let mut new = Vec::with_capacity(self.map.len());
+
+        // Avoid edges to avoid special cases reaching out of bounds
         for _ in 0..(self.width * self.height) {
             new.push(Tile::Empty);
         }
+
+        // TODO More performant would know in which layers to look, only
+        //      update those, and update the corresponding `self.map` slice.
         for layer in 1..(self.layers - 1) {
             for y in 0..self.height {
                 for x in 0..self.width {
@@ -233,6 +233,7 @@ impl MultiEris {
                 }
             }
         }
+
         for _ in 0..(self.width * self.height) {
             new.push(Tile::Empty);
         }
@@ -242,21 +243,11 @@ impl MultiEris {
     fn count_live(&self) -> usize {
         self.map.iter().filter(|tile| **tile == Tile::Bug).count()
     }
-
-    fn layer(&self, layer: i32) -> Eris {
-        let area = self.height * self.width;
-        let layer = (((self.layers as i32) / 2) + layer) as usize;
-        Eris {
-            map: self.map[(layer * area)..((1 + layer) * area)].iter().cloned().collect(),
-            width: self.width,
-            height: self.height,
-        }
-    }
 }
 
 fn main() {
     let mut eris = Eris::from_stdin();
-    let mut multi = MultiEris::new(&eris, 200);
+    let mut multi = MultiEris::new(&eris, 205);
 
     let mut seen = HashMap::new(); // {bio: iteration}
     for i in 0.. {
