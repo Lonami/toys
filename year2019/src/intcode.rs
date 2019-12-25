@@ -1,4 +1,5 @@
 use std::io::{stdin, Read};
+use std::fs::File;
 
 const MEMORY_SIZE: usize = 4096;
 
@@ -40,20 +41,20 @@ impl ParameterMode {
 }
 
 impl Program {
-    /// Build a new program parsing the input from stdin
-    pub fn from_stdin() -> Self {
-        let mut buffer = String::new();
-        stdin()
-            .lock()
-            .read_to_string(&mut buffer).expect("error while reading input file");
-
+    fn from_buffer(buffer: String) -> Self {
         let mut memory = Vec::with_capacity(MEMORY_SIZE);
         memory.extend(buffer
             .trim_end()
             .split(',')
             .map(|item| item.trim().parse::<i64>().expect("malformed input")));
 
-        while memory.len() < MEMORY_SIZE {
+        let needed_memory = if memory.len() < MEMORY_SIZE {
+            MEMORY_SIZE
+        } else {
+            MEMORY_SIZE * 2 // Day 25 in a nutshell
+        };
+
+        while memory.len() < needed_memory {
             memory.push(0);
         }
 
@@ -66,6 +67,26 @@ impl Program {
             relative_base: 0,
             stdout: 0
         }
+    }
+
+    /// Build a new program parsing the input from stdin
+    pub fn from_stdin() -> Self {
+        let mut buffer = String::new();
+        stdin()
+            .lock()
+            .read_to_string(&mut buffer).expect("error while reading input file");
+
+        Self::from_buffer(buffer)
+    }
+
+    /// Build a new program parsing the input from a file path
+    pub fn from_file(path: &str) -> Self {
+        let mut buffer = String::new();
+        File::open(path)
+            .expect("failed to open file")
+            .read_to_string(&mut buffer).expect("error while reading input file");
+
+        Self::from_buffer(buffer)
     }
 
     /// Save a backup of the current program's memory
