@@ -9,7 +9,7 @@ mod vec3;
 pub use camera::Camera;
 pub use color::Color;
 pub use hit::{Hit, Hittable, HittableList};
-pub use material::{Lambertian, Material};
+pub use material::{Lambertian, Material, Metal};
 pub use ray::Ray;
 pub use sphere::Sphere;
 pub use vec3::Vec3;
@@ -68,6 +68,12 @@ fn main() -> io::Result<()> {
     let mat_center = Box::new(Lambertian {
         albedo: Color::new(0.7, 0.3, 0.3),
     });
+    let mat_left = Box::new(Metal {
+        albedo: Color::new(0.8, 0.8, 0.8),
+    });
+    let mat_right = Box::new(Metal {
+        albedo: Color::new(0.8, 0.6, 0.2),
+    });
 
     world.add(Box::new(Sphere::new(
         Vec3::new(0.0, -100.5, -1.0),
@@ -78,6 +84,16 @@ fn main() -> io::Result<()> {
         Vec3::new(0.0, 0.0, -1.0),
         0.5,
         mat_center,
+    )));
+    world.add(Box::new(Sphere::new(
+        Vec3::new(-1.0, 0.0, -1.0),
+        0.5,
+        mat_left,
+    )));
+    world.add(Box::new(Sphere::new(
+        Vec3::new(1.0, 0.0, -1.0),
+        0.5,
+        mat_right,
     )));
 
     // Camera

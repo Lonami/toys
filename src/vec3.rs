@@ -50,6 +50,10 @@ impl Vec3 {
             z: self.x * other.y - self.y * other.x,
         }
     }
+
+    pub fn reflect(&self, normal: Vec3) -> Self {
+        *self - 2.0 * self.dot(normal) * normal
+    }
 }
 
 impl Neg for Vec3 {
