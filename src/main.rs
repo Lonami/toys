@@ -22,7 +22,15 @@ fn ray_color(rng: &mut Rand64, ray: &Ray, world: &impl Hittable, depth: usize) -
 
     if let Some(hit) = world.hit(ray, 0.0, f64::MAX) {
         let target = hit.point + hit.normal + Vec3::new_in_unit_sphere(rng);
-        return Color(0.5 * ray_color(rng, &Ray::new(hit.point, target - hit.point), world, depth - 1).0);
+        return Color(
+            0.5 * ray_color(
+                rng,
+                &Ray::new(hit.point, target - hit.point),
+                world,
+                depth - 1,
+            )
+            .0,
+        );
     }
 
     let dir = ray.direction.unit();
@@ -39,7 +47,6 @@ const IMAGE_WIDTH: usize = 224;
 const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
 
 const SAMPLES_PER_PIXEL: usize = 100;
-const COLOR_SCALE: f64 = 1.0 / SAMPLES_PER_PIXEL as f64;
 const MAX_DEPTH: usize = 50;
 
 fn main() -> io::Result<()> {
@@ -70,7 +77,15 @@ fn main() -> io::Result<()> {
                 })
                 .sum();
 
-            write!(stdout, "{}", Color(COLOR_SCALE * pixel_color))?;
+            // Gama-correct the color for gamma = 2.0 (square root)
+            const SCALE: f64 = 1.0 / SAMPLES_PER_PIXEL as f64;
+            let color = Color::new(
+                (SCALE * pixel_color.x).sqrt(),
+                (SCALE * pixel_color.y).sqrt(),
+                (SCALE * pixel_color.z).sqrt(),
+            );
+
+            write!(stdout, "{}", color)?;
         }
     }
     eprintln!("\nDone.");
