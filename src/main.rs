@@ -15,9 +15,10 @@ pub use vec3::Vec3;
 use oorandom::Rand64;
 use std::io::{self, BufWriter, Write};
 
-fn ray_color(ray: &Ray, world: &impl Hittable) -> Color {
+fn ray_color(rng: &mut Rand64, ray: &Ray, world: &impl Hittable) -> Color {
     if let Some(hit) = world.hit(ray, 0.0, f64::MAX) {
-        return Color(0.5 * (hit.normal + Vec3::new(1.0, 1.0, 1.0)));
+        let target = hit.point + hit.normal + Vec3::new_in_unit_sphere(rng);
+        return Color(0.5 * ray_color(rng, &Ray::new(hit.point, target - hit.point), world).0);
     }
 
     let dir = ray.direction.unit();
@@ -60,7 +61,7 @@ fn main() -> io::Result<()> {
                     let u = (rng.rand_float() + j as f64) / (IMAGE_WIDTH as f64 - 1.0);
                     let v = (rng.rand_float() + i as f64) / (IMAGE_HEIGHT as f64 - 1.0);
                     let ray = camera.get_ray(u, v);
-                    ray_color(&ray, &world).0
+                    ray_color(&mut rng, &ray, &world).0
                 })
                 .sum();
 

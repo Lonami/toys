@@ -1,3 +1,4 @@
+use oorandom::Rand64;
 use std::fmt;
 use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Neg, Sub};
@@ -12,6 +13,24 @@ pub struct Vec3 {
 impl Vec3 {
     pub fn new(x: f64, y: f64, z: f64) -> Self {
         Self { x, y, z }
+    }
+
+    pub fn new_in_range(rng: &mut Rand64, low: f64, high: f64) -> Self {
+        let mut gen = || low + (high - low) * rng.rand_float();
+        Self {
+            x: gen(),
+            y: gen(),
+            z: gen(),
+        }
+    }
+
+    pub fn new_in_unit_sphere(rng: &mut Rand64) -> Self {
+        loop {
+            let vec = Self::new_in_range(rng, -1.0, 1.0);
+            if vec.len_sq() < 1.0 {
+                break vec;
+            }
+        }
     }
 
     pub fn len(&self) -> f64 {
