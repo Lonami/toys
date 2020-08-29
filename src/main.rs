@@ -15,10 +15,14 @@ pub use vec3::Vec3;
 use oorandom::Rand64;
 use std::io::{self, BufWriter, Write};
 
-fn ray_color(rng: &mut Rand64, ray: &Ray, world: &impl Hittable) -> Color {
+fn ray_color(rng: &mut Rand64, ray: &Ray, world: &impl Hittable, depth: usize) -> Color {
+    if depth == 0 {
+        return Color::new(0.0, 0.0, 0.0);
+    }
+
     if let Some(hit) = world.hit(ray, 0.0, f64::MAX) {
         let target = hit.point + hit.normal + Vec3::new_in_unit_sphere(rng);
-        return Color(0.5 * ray_color(rng, &Ray::new(hit.point, target - hit.point), world).0);
+        return Color(0.5 * ray_color(rng, &Ray::new(hit.point, target - hit.point), world, depth - 1).0);
     }
 
     let dir = ray.direction.unit();
@@ -36,6 +40,7 @@ const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
 
 const SAMPLES_PER_PIXEL: usize = 100;
 const COLOR_SCALE: f64 = 1.0 / SAMPLES_PER_PIXEL as f64;
+const MAX_DEPTH: usize = 50;
 
 fn main() -> io::Result<()> {
     // Setup
@@ -61,7 +66,7 @@ fn main() -> io::Result<()> {
                     let u = (rng.rand_float() + j as f64) / (IMAGE_WIDTH as f64 - 1.0);
                     let v = (rng.rand_float() + i as f64) / (IMAGE_HEIGHT as f64 - 1.0);
                     let ray = camera.get_ray(u, v);
-                    ray_color(&mut rng, &ray, &world).0
+                    ray_color(&mut rng, &ray, &world, MAX_DEPTH).0
                 })
                 .sum();
 
