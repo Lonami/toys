@@ -16,6 +16,7 @@ pub use vec3::Vec3;
 
 use oorandom::Rand64;
 use std::cell::RefCell;
+use std::f64::consts;
 use std::io::{self, BufWriter, Write};
 
 thread_local!(static RNG: RefCell<Rand64> = RefCell::new(Rand64::new(RANDOM_SEED)));
@@ -62,49 +63,27 @@ fn main() -> io::Result<()> {
     // World
     let mut world = HittableList::new();
 
-    let mat_ground = Box::new(Lambertian {
-        albedo: Color::new(0.8, 0.8, 0.0),
+    let mat_left = Box::new(Lambertian {
+        albedo: Color::new(0.0, 0.0, 1.0),
     });
-    let mat_center = Box::new(Lambertian {
-        albedo: Color::new(0.1, 0.2, 0.5),
-    });
-    let mat_left = Box::new(Dialectric { ri: 1.5 });
-    let mat_left2 = Box::new(Dialectric { ri: 1.5 });
-    let mat_right = Box::new(Metal {
-        albedo: Color::new(0.8, 0.6, 0.2),
-        fuzz: 0.0,
+    let mat_right = Box::new(Lambertian {
+        albedo: Color::new(1.0, 0.0, 0.0),
     });
 
+    let radius: f64 = (0.25 * consts::PI).cos();
     world.add(Box::new(Sphere::new(
-        Vec3::new(0.0, -100.5, -1.0),
-        100.0,
-        mat_ground,
-    )));
-    world.add(Box::new(Sphere::new(
-        Vec3::new(0.0, 0.0, -1.0),
-        0.5,
-        mat_center,
-    )));
-    world.add(Box::new(Sphere::new(
-        Vec3::new(-1.0, 0.0, -1.0),
-        0.5,
+        Vec3::new(-radius, 0.0, -1.0),
+        radius,
         mat_left,
     )));
-    // The geometry is unaffected but the surface normal points inward.
-    // This can be abused to get a "hollow" glass sphere.
     world.add(Box::new(Sphere::new(
-        Vec3::new(-1.0, 0.0, -1.0),
-        -0.4,
-        mat_left2,
-    )));
-    world.add(Box::new(Sphere::new(
-        Vec3::new(1.0, 0.0, -1.0),
-        0.5,
+        Vec3::new(radius, 0.0, -1.0),
+        radius,
         mat_right,
     )));
 
     // Camera
-    let camera = Camera::new();
+    let camera = Camera::new(90.0, ASPECT_RATIO);
 
     write!(stdout, "P3\n{} {}\n255\n", IMAGE_WIDTH, IMAGE_HEIGHT)?;
 
