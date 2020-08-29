@@ -1,6 +1,7 @@
 use crate::Vec3;
 use std::fmt;
 
+#[derive(Clone, Copy)]
 pub struct Color(pub Vec3);
 
 impl Color {

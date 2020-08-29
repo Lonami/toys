@@ -1,13 +1,19 @@
-use crate::{Hit, Hittable, Ray, Vec3};
+use crate::{Hit, Hittable, Material, Ray, Vec3};
+use std::rc::Rc;
 
 pub struct Sphere {
     center: Vec3,
     radius: f64,
+    material: Rc<dyn Material>,
 }
 
 impl Sphere {
-    pub fn new(center: Vec3, radius: f64) -> Self {
-        Self { center, radius }
+    pub fn new(center: Vec3, radius: f64, material: Box<dyn Material>) -> Self {
+        Self {
+            center,
+            radius,
+            material: material.into(),
+        }
     }
 }
 
@@ -53,7 +59,7 @@ impl Hittable for Sphere {
                 let t = sol;
                 let point = ray.at(t);
                 let outward_normal = (point - self.center) / self.radius;
-                Some(ray.hit(point, outward_normal, t))
+                Some(ray.hit(point, outward_normal, Rc::clone(&self.material), t))
             } else {
                 None
             }

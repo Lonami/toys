@@ -1,8 +1,10 @@
-use crate::{Ray, Vec3};
+use crate::{Material, Ray, Vec3};
+use std::rc::Rc;
 
 pub struct Hit {
     pub point: Vec3,
     pub normal: Vec3,
+    pub material: Rc<dyn Material>,
     pub t: f64,
     pub front_face: bool,
 }

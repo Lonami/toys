@@ -1,6 +1,7 @@
 mod camera;
 mod color;
 mod hit;
+mod material;
 mod ray;
 mod sphere;
 mod vec3;
@@ -8,6 +9,7 @@ mod vec3;
 pub use camera::Camera;
 pub use color::Color;
 pub use hit::{Hit, Hittable, HittableList};
+pub use material::{Lambertian, Material};
 pub use ray::Ray;
 pub use sphere::Sphere;
 pub use vec3::Vec3;
@@ -29,10 +31,11 @@ fn ray_color(ray: &Ray, world: &impl Hittable, depth: usize) -> Color {
 
     // Use a value close to 0 to avoid the shadow acne problem since floats are not perfect
     if let Some(hit) = world.hit(ray, 0.001, f64::MAX) {
-        let target = hit.point + hit.normal + Vec3::new_random_unit();
-        return Color(
-            0.5 * ray_color(&Ray::new(hit.point, target - hit.point), world, depth - 1).0,
-        );
+        if let Some((scattered, attenuation)) = hit.material.scatter(ray, &hit) {
+            return Color(attenuation.0 * ray_color(&scattered, world, depth - 1).0);
+        } else {
+            return Color::new(0.0, 0.0, 0.0);
+        }
     }
 
     let dir = ray.direction.unit();
@@ -58,8 +61,24 @@ fn main() -> io::Result<()> {
 
     // World
     let mut world = HittableList::new();
-    world.add(Box::new(Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5)));
-    world.add(Box::new(Sphere::new(Vec3::new(0.0, -100.5, -1.0), 100.0)));
+
+    let mat_ground = Box::new(Lambertian {
+        albedo: Color::new(0.8, 0.8, 0.0),
+    });
+    let mat_center = Box::new(Lambertian {
+        albedo: Color::new(0.7, 0.3, 0.3),
+    });
+
+    world.add(Box::new(Sphere::new(
+        Vec3::new(0.0, -100.5, -1.0),
+        100.0,
+        mat_ground,
+    )));
+    world.add(Box::new(Sphere::new(
+        Vec3::new(0.0, 0.0, -1.0),
+        0.5,
+        mat_center,
+    )));
 
     // Camera
     let camera = Camera::new();

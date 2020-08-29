@@ -1,4 +1,5 @@
-use crate::{Hit, Vec3};
+use crate::{Hit, Material, Vec3};
+use std::rc::Rc;
 
 pub struct Ray {
     pub origin: Vec3,
@@ -14,7 +15,13 @@ impl Ray {
         self.origin + t * self.direction
     }
 
-    pub fn hit(&self, point: Vec3, outward_normal: Vec3, t: f64) -> Hit {
+    pub fn hit(
+        &self,
+        point: Vec3,
+        outward_normal: Vec3,
+        material: Rc<dyn Material>,
+        t: f64,
+    ) -> Hit {
         // This front face detection could be left up until later, and have the
         // normal always point outwards the surface instead of towards the ray.
         let front_face = self.direction.dot(outward_normal) < 0.0;
@@ -26,6 +33,7 @@ impl Ray {
         Hit {
             point,
             normal,
+            material,
             t,
             front_face,
         }
