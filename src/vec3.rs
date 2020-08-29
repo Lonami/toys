@@ -34,6 +34,20 @@ impl Vec3 {
         }
     }
 
+    pub fn new_random_in_disk() -> Self {
+        let gen = || -1.0 + 2.0 * rand_f64();
+        loop {
+            let vec = Self {
+                x: gen(),
+                y: gen(),
+                z: 0.0,
+            };
+            if vec.len_sq() < 1.0 {
+                break vec;
+            }
+        }
+    }
+
     pub fn new_random_unit() -> Self {
         let a = rand_f64() * 2.0 * consts::PI;
         let z = rand_f64() * 2.0 - 1.0;
