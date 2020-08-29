@@ -14,7 +14,7 @@ use std::io::{self, BufWriter, Write};
 // This equals the dot product of the vector from C to P:
 //   (P - C) ⋅ (P - C) = r²
 //
-// We want to solve for our ray, which gives a point in P(t) = A + tB
+// We want to solve for our ray, which gives a point in P(t) = A + tB:
 //   (P(t) - C) ⋅ (P(t) - C) = r²
 //   (A + tB - C) ⋅ (A + tB - C) = r²
 //   t²B ⋅ B + 2tB ⋅ (A - C) + (A - C) ⋅ (A - C) - r² = 0
@@ -26,18 +26,25 @@ use std::io::{self, BufWriter, Write};
 //   t = (-b ± √(b² - 4ac)) / 2a
 //
 // If the square root in the solution has a real solution (> 0), we hit the sphere.
-fn hit_sphere(center: Vec3, radius: f64, ray: &Ray) -> bool {
-    let oc = ray.origin - center;
+fn hit_sphere(center: Vec3, radius: f64, ray: &Ray) -> Option<f64> {
+    let ac = ray.origin - center;
+
     let a = ray.direction.dot(ray.direction);
-    let b = 2.0 * oc.dot(ray.direction);
-    let c = oc.dot(oc) - radius * radius;
+    let b = 2.0 * ray.direction.dot(ac);
+    let c = ac.dot(ac) - radius.powi(2);
+
     let discriminant = b * b - 4.0 * a * c;
-    discriminant > 0.0
+    if discriminant < 0.0 {
+        None
+    } else {
+        Some((-b - discriminant.sqrt()) / (2.0 * a))
+    }
 }
 
 fn ray_color(ray: &Ray) -> Color {
-    if hit_sphere(Vec3::new(0.0, 0.0, -1.0), 0.5, ray) {
-        return Color::new(1.0, 0.0, 0.0);
+    if let Some(t) = hit_sphere(Vec3::new(0.0, 0.0, -1.0), 0.5, ray) {
+        let normal = (ray.at(t) - Vec3::new(0.0, 0.0, -1.0)).unit();
+        return Color(0.5 * Vec3::new(normal.x + 1.0, normal.y + 1.0, normal.z + 1.0));
     }
 
     let dir = ray.direction.unit();
