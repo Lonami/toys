@@ -1,3 +1,9 @@
+mod color;
+mod vec3;
+
+pub use color::Color;
+pub use vec3::Vec3;
+
 use std::io::{self, BufWriter, Write};
 
 const IMAGE_WIDTH: usize = 128;
@@ -16,11 +22,7 @@ fn main() -> io::Result<()> {
             let g = j as f64 / (IMAGE_WIDTH as f64 - 1.0);
             let b = 0.25;
 
-            let ir = (255.999 * r) as i32;
-            let ig = (255.999 * g) as i32;
-            let ib = (255.999 * b) as i32;
-
-            write!(stdout, "{} {} {}\n", ir, ig, ib)?;
+            write!(stdout, "{}", Color::new(r, g, b))?;
         }
     }
     eprintln!("\nDone.");
