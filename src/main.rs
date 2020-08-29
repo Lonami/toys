@@ -46,13 +46,71 @@ fn ray_color(ray: &Ray, world: &impl Hittable, depth: usize) -> Color {
 const RANDOM_SEED: u128 = 0;
 
 // Image settings
-const ASPECT_RATIO: f64 = 16.0 / 9.0;
+const ASPECT_RATIO: f64 = 3.0 / 2.0;
 
-const IMAGE_WIDTH: usize = 224;
+const IMAGE_WIDTH: usize = 600;
 const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
 
 const SAMPLES_PER_PIXEL: usize = 100;
 const MAX_DEPTH: usize = 50;
+
+fn random_scene() -> HittableList {
+    let mut world = HittableList::new();
+
+    let mat_ground = Box::new(Lambertian {
+        albedo: Color::new(0.5, 0.5, 0.5),
+    });
+    world.add(Box::new(Sphere::new(
+        Vec3::new(0.0, -1000.0, 0.0),
+        1000.0,
+        mat_ground,
+    )));
+
+    for a in -11..11 {
+        let a = a as f64;
+        for b in -11..11 {
+            let b = b as f64;
+
+            let mat_prob = rand_f64();
+            let center = Vec3::new(a + 0.9 * rand_f64(), 0.2, b + 0.9 * rand_f64());
+
+            if (center - Vec3::new(4.0, 0.2, 0.0)).len() < 0.9 {
+                continue;
+            }
+
+            let material: Box<dyn Material> = if mat_prob < 0.8 {
+                Box::new(Lambertian {
+                    albedo: Color(Vec3::new_in_range(0.0, 1.0) * Vec3::new_in_range(0.0, 1.0)),
+                })
+            } else if mat_prob < 0.95 {
+                Box::new(Metal {
+                    albedo: Color(Vec3::new_in_range(0.5, 1.0)),
+                    fuzz: 0.5 * rand_f64(),
+                })
+            } else {
+                Box::new(Dialectric { ri: 1.5 })
+            };
+
+            world.add(Box::new(Sphere::new(center, 0.2, material)));
+        }
+    }
+
+    let mat = Box::new(Dialectric { ri: 1.5 });
+    world.add(Box::new(Sphere::new(Vec3::new(0.0, 1.0, 0.0), 1.0, mat)));
+
+    let mat = Box::new(Lambertian {
+        albedo: Color::new(0.4, 0.2, 0.1),
+    });
+    world.add(Box::new(Sphere::new(Vec3::new(-4.0, 1.0, 0.0), 1.0, mat)));
+
+    let mat = Box::new(Metal {
+        albedo: Color::new(0.7, 0.6, 0.5),
+        fuzz: 0.0,
+    });
+    world.add(Box::new(Sphere::new(Vec3::new(4.0, 1.0, 0.0), 1.0, mat)));
+
+    world
+}
 
 fn main() -> io::Result<()> {
     // Setup
@@ -60,55 +118,14 @@ fn main() -> io::Result<()> {
     let mut stdout = BufWriter::new(stdout.lock());
 
     // World
-    let mut world = HittableList::new();
-
-    let mat_ground = Box::new(Lambertian {
-        albedo: Color::new(0.8, 0.8, 0.0),
-    });
-    let mat_center = Box::new(Lambertian {
-        albedo: Color::new(0.1, 0.2, 0.5),
-    });
-    let mat_left = Box::new(Dialectric { ri: 1.5 });
-    let mat_left2 = Box::new(Dialectric { ri: 1.5 });
-    let mat_right = Box::new(Metal {
-        albedo: Color::new(0.8, 0.6, 0.2),
-        fuzz: 0.0,
-    });
-
-    world.add(Box::new(Sphere::new(
-        Vec3::new(0.0, -100.5, -1.0),
-        100.0,
-        mat_ground,
-    )));
-    world.add(Box::new(Sphere::new(
-        Vec3::new(0.0, 0.0, -1.0),
-        0.5,
-        mat_center,
-    )));
-    world.add(Box::new(Sphere::new(
-        Vec3::new(-1.0, 0.0, -1.0),
-        0.5,
-        mat_left,
-    )));
-    // The geometry is unaffected but the surface normal points inward.
-    // This can be abused to get a "hollow" glass sphere.
-    world.add(Box::new(Sphere::new(
-        Vec3::new(-1.0, 0.0, -1.0),
-        -0.4,
-        mat_left2,
-    )));
-    world.add(Box::new(Sphere::new(
-        Vec3::new(1.0, 0.0, -1.0),
-        0.5,
-        mat_right,
-    )));
+    let world = random_scene();
 
     // Camera
-    let look_from = Vec3::new(3.0, 3.0, 2.0);
-    let look_at = Vec3::new(0.0, 0.0, -1.0);
+    let look_from = Vec3::new(13.0, 2.0, 3.0);
+    let look_at = Vec3::new(0.0, 0.0, 0.0);
     let vup = Vec3::new(0.0, 1.0, 0.0);
-    let dist_to_focus = (look_from - look_at).len();
-    let aperture = 2.0;
+    let dist_to_focus = 10.0;
+    let aperture = 0.1;
 
     let camera = Camera::new(
         look_from,
