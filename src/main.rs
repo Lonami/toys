@@ -69,6 +69,7 @@ fn main() -> io::Result<()> {
         albedo: Color::new(0.1, 0.2, 0.5),
     });
     let mat_left = Box::new(Dialectric { ri: 1.5 });
+    let mat_left2 = Box::new(Dialectric { ri: 1.5 });
     let mat_right = Box::new(Metal {
         albedo: Color::new(0.8, 0.6, 0.2),
         fuzz: 0.0,
@@ -88,6 +89,13 @@ fn main() -> io::Result<()> {
         Vec3::new(-1.0, 0.0, -1.0),
         0.5,
         mat_left,
+    )));
+    // The geometry is unaffected but the surface normal points inward.
+    // This can be abused to get a "hollow" glass sphere.
+    world.add(Box::new(Sphere::new(
+        Vec3::new(-1.0, 0.0, -1.0),
+        -0.4,
+        mat_left2,
     )));
     world.add(Box::new(Sphere::new(
         Vec3::new(1.0, 0.0, -1.0),

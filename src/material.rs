@@ -1,4 +1,4 @@
-use crate::{Color, Hit, Ray, Vec3};
+use crate::{rand_f64, Color, Hit, Ray, Vec3};
 
 pub trait Material {
     /// Returns the resulting ray and attenuation color.
@@ -45,6 +45,13 @@ impl Material for Metal {
 
 impl Material for Dialectric {
     fn scatter(&self, ray: &Ray, hit: &Hit) -> Option<(Ray, Color)> {
+        // Approximation to account for the reflectivity varying on the angle
+        fn schlick(cosine: f64, ri: f64) -> f64 {
+            let r0 = (1.0 - ri) / (1.0 + ri);
+            let r0 = r0.powi(2);
+            r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
+        }
+
         let attenuation = Color::new(1.0, 1.0, 1.0);
         let etai_over_etat = if hit.front_face {
             1.0 / self.ri
@@ -59,6 +66,13 @@ impl Material for Dialectric {
 
         if etai_over_etat * sin_theta > 1.0 {
             // No solution for the formula, can't refract
+            let reflected = ray.direction.unit().reflect(hit.normal);
+            let scattered = Ray::new(hit.point, reflected);
+            return Some((scattered, attenuation));
+        }
+
+        let reflect_prob = schlick(cos_theta, etai_over_etat);
+        if rand_f64() < reflect_prob {
             let reflected = ray.direction.unit().reflect(hit.normal);
             let scattered = Ray::new(hit.point, reflected);
             return Some((scattered, attenuation));
