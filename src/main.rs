@@ -103,7 +103,7 @@ fn main() -> io::Result<()> {
 
     for i in (0..IMAGE_HEIGHT).rev() {
         eprint!("\rScanlines remaining: {:>3}", i);
-        for j in (0..IMAGE_WIDTH).rev() {
+        for j in 0..IMAGE_WIDTH {
             let pixel_color: Vec3 = (0..SAMPLES_PER_PIXEL)
                 .map(|_| {
                     let u = (rand_f64() + j as f64) / (IMAGE_WIDTH as f64 - 1.0);
