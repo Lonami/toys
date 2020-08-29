@@ -9,7 +9,7 @@ mod vec3;
 pub use camera::Camera;
 pub use color::Color;
 pub use hit::{Hit, Hittable, HittableList};
-pub use material::{Lambertian, Material, Metal};
+pub use material::{Dialectric, Lambertian, Material, Metal};
 pub use ray::Ray;
 pub use sphere::Sphere;
 pub use vec3::Vec3;
@@ -65,13 +65,8 @@ fn main() -> io::Result<()> {
     let mat_ground = Box::new(Lambertian {
         albedo: Color::new(0.8, 0.8, 0.0),
     });
-    let mat_center = Box::new(Lambertian {
-        albedo: Color::new(0.7, 0.3, 0.3),
-    });
-    let mat_left = Box::new(Metal {
-        albedo: Color::new(0.8, 0.8, 0.8),
-        fuzz: 0.3,
-    });
+    let mat_center = Box::new(Dialectric { ri: 1.5 });
+    let mat_left = Box::new(Dialectric { ri: 1.5 });
     let mat_right = Box::new(Metal {
         albedo: Color::new(0.8, 0.6, 0.2),
         fuzz: 1.0,

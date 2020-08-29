@@ -16,6 +16,11 @@ pub struct Metal {
     pub fuzz: f64,
 }
 
+pub struct Dialectric {
+    /// Refraction index.
+    pub ri: f64,
+}
+
 impl Material for Lambertian {
     // Alternatively, we could scatter only with probability p and have attenuation be albedo / p.
     fn scatter(&self, _ray: &Ray, hit: &Hit) -> Option<(Ray, Color)> {
@@ -27,7 +32,6 @@ impl Material for Lambertian {
 }
 
 impl Material for Metal {
-    // Alternatively, we could scatter only with probability p and have attenuation be albedo / p.
     fn scatter(&self, ray: &Ray, hit: &Hit) -> Option<(Ray, Color)> {
         let reflected = ray.direction.unit().reflect(hit.normal);
         let scattered = Ray::new(
@@ -35,6 +39,22 @@ impl Material for Metal {
             reflected + self.fuzz * Vec3::new_random_in_sphere(),
         );
         let attenuation = self.albedo;
+        Some((scattered, attenuation))
+    }
+}
+
+impl Material for Dialectric {
+    fn scatter(&self, ray: &Ray, hit: &Hit) -> Option<(Ray, Color)> {
+        let etai_over_etat = if hit.front_face {
+            1.0 / self.ri
+        } else {
+            self.ri
+        };
+
+        let unit_dir = ray.direction.unit();
+        let refracted = unit_dir.refract(hit.normal, etai_over_etat);
+        let scattered = Ray::new(hit.point, refracted);
+        let attenuation = Color::new(1.0, 1.0, 1.0);
         Some((scattered, attenuation))
     }
 }
