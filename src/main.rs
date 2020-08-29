@@ -10,6 +10,7 @@ fn main() -> io::Result<()> {
     write!(stdout, "P3\n{} {}\n255\n", IMAGE_WIDTH, IMAGE_HEIGHT)?;
 
     for i in (0..IMAGE_HEIGHT).rev() {
+        eprint!("\rScanlines remaining: {:>3}", i);
         for j in (0..IMAGE_WIDTH).rev() {
             let r = i as f64 / (IMAGE_HEIGHT as f64 - 1.0);
             let g = j as f64 / (IMAGE_WIDTH as f64 - 1.0);
@@ -22,6 +23,7 @@ fn main() -> io::Result<()> {
             write!(stdout, "{} {} {}\n", ir, ig, ib)?;
         }
     }
+    eprintln!("\nDone.");
 
     Ok(())
 }
