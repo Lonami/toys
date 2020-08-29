@@ -20,7 +20,8 @@ fn ray_color(rng: &mut Rand64, ray: &Ray, world: &impl Hittable, depth: usize) -
         return Color::new(0.0, 0.0, 0.0);
     }
 
-    if let Some(hit) = world.hit(ray, 0.0, f64::MAX) {
+    // Use a value close to 0 to avoid the shadow acne problem since floats are not perfect
+    if let Some(hit) = world.hit(ray, 0.001, f64::MAX) {
         let target = hit.point + hit.normal + Vec3::new_in_unit_sphere(rng);
         return Color(
             0.5 * ray_color(
