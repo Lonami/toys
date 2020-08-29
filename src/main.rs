@@ -26,18 +26,24 @@ use std::io::{self, BufWriter, Write};
 //   t = (-b ± √(b² - 4ac)) / 2a
 //
 // If the square root in the solution has a real solution (> 0), we hit the sphere.
+//
+// Note the 2 factor in our first-degree component. This lets us simplify:
+//
+//   (-2h ± √((2h)² - 4ac)) / 2a
+//   (-2h ± √2(h² - ac)) / 2a
+//   (-h ± √(h² - ac)) / a
 fn hit_sphere(center: Vec3, radius: f64, ray: &Ray) -> Option<f64> {
     let ac = ray.origin - center;
 
-    let a = ray.direction.dot(ray.direction);
-    let b = 2.0 * ray.direction.dot(ac);
-    let c = ac.dot(ac) - radius.powi(2);
+    let a = ray.direction.len_sq(); // = B ⋅ B
+    let half_b = ray.direction.dot(ac);
+    let c = ac.len_sq() - radius.powi(2);
 
-    let discriminant = b * b - 4.0 * a * c;
+    let discriminant = half_b.powi(2) - a * c;
     if discriminant < 0.0 {
         None
     } else {
-        Some((-b - discriminant.sqrt()) / (2.0 * a))
+        Some((-half_b - discriminant.sqrt()) / a)
     }
 }
 
