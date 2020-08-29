@@ -1,9 +1,11 @@
+mod camera;
 mod color;
 mod hit;
 mod ray;
 mod sphere;
 mod vec3;
 
+pub use camera::Camera;
 pub use color::Color;
 pub use hit::{Hit, Hittable, HittableList};
 pub use ray::Ray;
@@ -44,11 +46,8 @@ fn main() -> io::Result<()> {
     world.add(Box::new(Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5)));
     world.add(Box::new(Sphere::new(Vec3::new(0.0, -100.5, -1.0), 100.0)));
 
-    let origin = Vec3::new(0.0, 0.0, 0.0);
-    let horizontal = Vec3::new(VIEWPORT_WIDTH, 0.0, 0.0);
-    let vertical = Vec3::new(0.0, VIEWPORT_HEIGHT, 0.0);
-    let lower_left_corner =
-        origin - 0.5 * horizontal - 0.5 * vertical - Vec3::new(0.0, 0.0, FOCAL_LENGTH);
+    // Camera
+    let camera = Camera::new();
 
     write!(stdout, "P3\n{} {}\n255\n", IMAGE_WIDTH, IMAGE_HEIGHT)?;
 
@@ -57,10 +56,7 @@ fn main() -> io::Result<()> {
         for j in (0..IMAGE_WIDTH).rev() {
             let u = j as f64 / (IMAGE_WIDTH as f64 - 1.0);
             let v = i as f64 / (IMAGE_HEIGHT as f64 - 1.0);
-            let ray = Ray::new(
-                origin,
-                lower_left_corner + u * horizontal + v * vertical - origin,
-            );
+            let ray = camera.get_ray(u, v);
             write!(stdout, "{}", ray_color(&ray, &world))?;
         }
     }
