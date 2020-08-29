@@ -1,4 +1,4 @@
-use oorandom::Rand64;
+use crate::rand_f64;
 use std::f64::consts;
 use std::fmt;
 use std::iter::Sum;
@@ -16,9 +16,9 @@ impl Vec3 {
         Self { x, y, z }
     }
 
-    pub fn new_random_unit(rng: &mut Rand64) -> Self {
-        let a = rng.rand_float() * 2.0 * consts::PI;
-        let z = rng.rand_float() * 2.0 - 1.0;
+    pub fn new_random_unit() -> Self {
+        let a = rand_f64() * 2.0 * consts::PI;
+        let z = rand_f64() * 2.0 - 1.0;
         let r = (1.0 - z.powi(2)).sqrt();
         Self {
             x: r * a.cos(),

@@ -13,24 +13,25 @@ pub use sphere::Sphere;
 pub use vec3::Vec3;
 
 use oorandom::Rand64;
+use std::cell::RefCell;
 use std::io::{self, BufWriter, Write};
 
-fn ray_color(rng: &mut Rand64, ray: &Ray, world: &impl Hittable, depth: usize) -> Color {
+thread_local!(static RNG: RefCell<Rand64> = RefCell::new(Rand64::new(RANDOM_SEED)));
+
+pub fn rand_f64() -> f64 {
+    RNG.with(|rng| rng.borrow_mut().rand_float())
+}
+
+fn ray_color(ray: &Ray, world: &impl Hittable, depth: usize) -> Color {
     if depth == 0 {
         return Color::new(0.0, 0.0, 0.0);
     }
 
     // Use a value close to 0 to avoid the shadow acne problem since floats are not perfect
     if let Some(hit) = world.hit(ray, 0.001, f64::MAX) {
-        let target = hit.point + hit.normal + Vec3::new_random_unit(rng);
+        let target = hit.point + hit.normal + Vec3::new_random_unit();
         return Color(
-            0.5 * ray_color(
-                rng,
-                &Ray::new(hit.point, target - hit.point),
-                world,
-                depth - 1,
-            )
-            .0,
+            0.5 * ray_color(&Ray::new(hit.point, target - hit.point), world, depth - 1).0,
         );
     }
 
@@ -54,7 +55,6 @@ fn main() -> io::Result<()> {
     // Setup
     let stdout = io::stdout();
     let mut stdout = BufWriter::new(stdout.lock());
-    let mut rng = Rand64::new(RANDOM_SEED);
 
     // World
     let mut world = HittableList::new();
@@ -71,10 +71,10 @@ fn main() -> io::Result<()> {
         for j in (0..IMAGE_WIDTH).rev() {
             let pixel_color: Vec3 = (0..SAMPLES_PER_PIXEL)
                 .map(|_| {
-                    let u = (rng.rand_float() + j as f64) / (IMAGE_WIDTH as f64 - 1.0);
-                    let v = (rng.rand_float() + i as f64) / (IMAGE_HEIGHT as f64 - 1.0);
+                    let u = (rand_f64() + j as f64) / (IMAGE_WIDTH as f64 - 1.0);
+                    let v = (rand_f64() + i as f64) / (IMAGE_HEIGHT as f64 - 1.0);
                     let ray = camera.get_ray(u, v);
-                    ray_color(&mut rng, &ray, &world, MAX_DEPTH).0
+                    ray_color(&ray, &world, MAX_DEPTH).0
                 })
                 .sum();
 
