@@ -1,7 +1,8 @@
 use std::fmt;
+use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Vec3 {
     pub x: f64,
     pub y: f64,
@@ -120,6 +121,19 @@ impl Mul for Vec3 {
             y: self.y * other.y,
             z: self.z * other.z,
         }
+    }
+}
+
+impl Sum for Vec3 {
+    fn sum<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = Vec3>,
+    {
+        let mut result = Self::default();
+        for item in iter {
+            result = result + item;
+        }
+        result
     }
 }
 
