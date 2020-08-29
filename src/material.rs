@@ -45,6 +45,7 @@ impl Material for Metal {
 
 impl Material for Dialectric {
     fn scatter(&self, ray: &Ray, hit: &Hit) -> Option<(Ray, Color)> {
+        let attenuation = Color::new(1.0, 1.0, 1.0);
         let etai_over_etat = if hit.front_face {
             1.0 / self.ri
         } else {
@@ -52,9 +53,19 @@ impl Material for Dialectric {
         };
 
         let unit_dir = ray.direction.unit();
+
+        let cos_theta = (-unit_dir).dot(hit.normal).min(1.0);
+        let sin_theta = (1.0 - cos_theta.powi(2)).sqrt();
+
+        if etai_over_etat * sin_theta > 1.0 {
+            // No solution for the formula, can't refract
+            let reflected = ray.direction.unit().reflect(hit.normal);
+            let scattered = Ray::new(hit.point, reflected);
+            return Some((scattered, attenuation));
+        }
+
         let refracted = unit_dir.refract(hit.normal, etai_over_etat);
         let scattered = Ray::new(hit.point, refracted);
-        let attenuation = Color::new(1.0, 1.0, 1.0);
         Some((scattered, attenuation))
     }
 }

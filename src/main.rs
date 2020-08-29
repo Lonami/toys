@@ -65,11 +65,13 @@ fn main() -> io::Result<()> {
     let mat_ground = Box::new(Lambertian {
         albedo: Color::new(0.8, 0.8, 0.0),
     });
-    let mat_center = Box::new(Dialectric { ri: 1.5 });
+    let mat_center = Box::new(Lambertian {
+        albedo: Color::new(0.1, 0.2, 0.5),
+    });
     let mat_left = Box::new(Dialectric { ri: 1.5 });
     let mat_right = Box::new(Metal {
         albedo: Color::new(0.8, 0.6, 0.2),
-        fuzz: 1.0,
+        fuzz: 0.0,
     });
 
     world.add(Box::new(Sphere::new(
