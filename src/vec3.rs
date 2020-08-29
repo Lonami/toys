@@ -1,4 +1,5 @@
 use oorandom::Rand64;
+use std::f64::consts;
 use std::fmt;
 use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Neg, Sub};
@@ -15,21 +16,14 @@ impl Vec3 {
         Self { x, y, z }
     }
 
-    pub fn new_in_range(rng: &mut Rand64, low: f64, high: f64) -> Self {
-        let mut gen = || low + (high - low) * rng.rand_float();
+    pub fn new_random_unit(rng: &mut Rand64) -> Self {
+        let a = rng.rand_float() * 2.0 * consts::PI;
+        let z = rng.rand_float() * 2.0 - 1.0;
+        let r = (1.0 - z.powi(2)).sqrt();
         Self {
-            x: gen(),
-            y: gen(),
-            z: gen(),
-        }
-    }
-
-    pub fn new_in_unit_sphere(rng: &mut Rand64) -> Self {
-        loop {
-            let vec = Self::new_in_range(rng, -1.0, 1.0);
-            if vec.len_sq() < 1.0 {
-                break vec;
-            }
+            x: r * a.cos(),
+            y: r * a.sin(),
+            z,
         }
     }
 
