@@ -5,7 +5,7 @@ mod sphere;
 mod vec3;
 
 pub use color::Color;
-pub use hit::{Hit, Hittable};
+pub use hit::{Hit, Hittable, HittableList};
 pub use ray::Ray;
 pub use sphere::Sphere;
 pub use vec3::Vec3;
@@ -40,7 +40,9 @@ fn main() -> io::Result<()> {
     let mut stdout = BufWriter::new(stdout.lock());
 
     // World
-    let world = Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5);
+    let mut world = HittableList::new();
+    world.add(Box::new(Sphere::new(Vec3::new(0.0, 0.0, -1.0), 0.5)));
+    world.add(Box::new(Sphere::new(Vec3::new(0.0, -100.5, -1.0), 100.0)));
 
     let origin = Vec3::new(0.0, 0.0, 0.0);
     let horizontal = Vec3::new(VIEWPORT_WIDTH, 0.0, 0.0);
