@@ -70,9 +70,11 @@ fn main() -> io::Result<()> {
     });
     let mat_left = Box::new(Metal {
         albedo: Color::new(0.8, 0.8, 0.8),
+        fuzz: 0.3,
     });
     let mat_right = Box::new(Metal {
         albedo: Color::new(0.8, 0.6, 0.2),
+        fuzz: 1.0,
     });
 
     world.add(Box::new(Sphere::new(

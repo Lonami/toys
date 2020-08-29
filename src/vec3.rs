@@ -16,6 +16,24 @@ impl Vec3 {
         Self { x, y, z }
     }
 
+    pub fn new_in_range(low: f64, high: f64) -> Self {
+        let gen = || low + (high - low) * rand_f64();
+        Self {
+            x: gen(),
+            y: gen(),
+            z: gen(),
+        }
+    }
+
+    pub fn new_random_in_sphere() -> Self {
+        loop {
+            let vec = Self::new_in_range(-1.0, 1.0);
+            if vec.len_sq() < 1.0 {
+                break vec;
+            }
+        }
+    }
+
     pub fn new_random_unit() -> Self {
         let a = rand_f64() * 2.0 * consts::PI;
         let z = rand_f64() * 2.0 - 1.0;

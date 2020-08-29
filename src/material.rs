@@ -12,6 +12,8 @@ pub struct Lambertian {
 
 pub struct Metal {
     pub albedo: Color,
+    /// Should be in the range [0.0, 1.0].
+    pub fuzz: f64,
 }
 
 impl Material for Lambertian {
@@ -28,7 +30,10 @@ impl Material for Metal {
     // Alternatively, we could scatter only with probability p and have attenuation be albedo / p.
     fn scatter(&self, ray: &Ray, hit: &Hit) -> Option<(Ray, Color)> {
         let reflected = ray.direction.unit().reflect(hit.normal);
-        let scattered = Ray::new(hit.point, reflected);
+        let scattered = Ray::new(
+            hit.point,
+            reflected + self.fuzz * Vec3::new_random_in_sphere(),
+        );
         let attenuation = self.albedo;
         Some((scattered, attenuation))
     }
