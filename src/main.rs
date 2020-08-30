@@ -46,15 +46,15 @@ fn ray_color(ray: &Ray, world: &impl Hittable, depth: usize) -> Color {
 const RANDOM_SEED: u128 = 0;
 
 // Image settings
-const ASPECT_RATIO: f64 = 3.0 / 2.0;
+const ASPECT_RATIO: f64 = 16.0 / 9.0;
 
-const IMAGE_WIDTH: usize = 600;
+const IMAGE_WIDTH: usize = 200;
 const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
 
 const SAMPLES_PER_PIXEL: usize = 100;
 const MAX_DEPTH: usize = 50;
 
-fn random_scene() -> HittableList {
+fn random_scene(ball_count: i32) -> HittableList {
     let mut world = HittableList::new();
 
     let mat_ground = Box::new(Lambertian {
@@ -66,9 +66,9 @@ fn random_scene() -> HittableList {
         mat_ground,
     )));
 
-    for a in -11..11 {
+    for a in -ball_count..ball_count {
         let a = a as f64;
-        for b in -11..11 {
+        for b in -ball_count..ball_count {
             let b = b as f64;
 
             let mat_prob = rand_f64();
@@ -118,7 +118,7 @@ fn main() -> io::Result<()> {
     let mut stdout = BufWriter::new(stdout.lock());
 
     // World
-    let world = random_scene();
+    let world = random_scene(0);
 
     // Camera
     let look_from = Vec3::new(13.0, 2.0, 3.0);
