@@ -7,10 +7,39 @@ pub struct Sphere {
     material: Rc<dyn Material>,
 }
 
+pub struct MovingSphere {
+    center0: Vec3,
+    center1: Vec3,
+    time0: f64,
+    time1: f64,
+    radius: f64,
+    material: Rc<dyn Material>,
+}
+
 impl Sphere {
     pub fn new(center: Vec3, radius: f64, material: Box<dyn Material>) -> Self {
         Self {
             center,
+            radius,
+            material: material.into(),
+        }
+    }
+}
+
+impl MovingSphere {
+    pub fn new(
+        center0: Vec3,
+        center1: Vec3,
+        time0: f64,
+        time1: f64,
+        radius: f64,
+        material: Box<dyn Material>,
+    ) -> Self {
+        Self {
+            center0,
+            center1,
+            time0,
+            time1,
             radius,
             material: material.into(),
         }
@@ -67,5 +96,18 @@ impl Hittable for Sphere {
 
         let root = discriminant.sqrt();
         check_solution((-half_b - root) / a).or_else(|| check_solution((-half_b + root) / a))
+    }
+}
+
+impl Hittable for MovingSphere {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Hit> {
+        let center = self.center0
+            + ((ray.time - self.time0) / (self.time1 - self.time0)) * (self.center1 - self.center0);
+        Sphere {
+            center,
+            radius: self.radius,
+            material: Rc::clone(&self.material),
+        }
+        .hit(ray, t_min, t_max)
     }
 }

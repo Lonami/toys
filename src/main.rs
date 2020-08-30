@@ -11,7 +11,7 @@ pub use color::Color;
 pub use hit::{Hit, Hittable, HittableList};
 pub use material::{Dialectric, Lambertian, Material, Metal};
 pub use ray::Ray;
-pub use sphere::Sphere;
+pub use sphere::{MovingSphere, Sphere};
 pub use vec3::Vec3;
 
 use oorandom::Rand64;
@@ -52,10 +52,10 @@ const RANDOM_SEED: u128 = 0;
 // Image settings
 const ASPECT_RATIO: f64 = 16.0 / 9.0;
 
-const IMAGE_WIDTH: usize = 200;
+const IMAGE_WIDTH: usize = 400;
 const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
 
-const SAMPLES_PER_PIXEL: usize = 100;
+const SAMPLES_PER_PIXEL: usize = 50;
 const MAX_DEPTH: usize = 50;
 
 fn random_scene(ball_count: i32) -> HittableList {
@@ -83,9 +83,14 @@ fn random_scene(ball_count: i32) -> HittableList {
             }
 
             let material: Box<dyn Material> = if mat_prob < 0.8 {
-                Box::new(Lambertian {
+                let material = Box::new(Lambertian {
                     albedo: Color(Vec3::new_in_range(0.0, 1.0) * Vec3::new_in_range(0.0, 1.0)),
-                })
+                });
+                let center2 = center + Vec3::new(0.0, rand_range(0.0, 0.5), 0.0);
+                world.add(Box::new(MovingSphere::new(
+                    center, center2, 0.0, 1.0, 0.2, material,
+                )));
+                continue;
             } else if mat_prob < 0.95 {
                 Box::new(Metal {
                     albedo: Color(Vec3::new_in_range(0.5, 1.0)),
@@ -122,7 +127,7 @@ fn main() -> io::Result<()> {
     let mut stdout = BufWriter::new(stdout.lock());
 
     // World
-    let world = random_scene(0);
+    let world = random_scene(11);
 
     // Camera
     let look_from = Vec3::new(13.0, 2.0, 3.0);
@@ -139,6 +144,8 @@ fn main() -> io::Result<()> {
         ASPECT_RATIO,
         aperture,
         dist_to_focus,
+        0.0,
+        1.0,
     );
 
     write!(stdout, "P6\n{} {}\n255\n", IMAGE_WIDTH, IMAGE_HEIGHT)?;

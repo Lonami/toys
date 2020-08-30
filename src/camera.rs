@@ -1,4 +1,4 @@
-use crate::{Ray, Vec3};
+use crate::{rand_range, Ray, Vec3};
 
 pub struct Camera {
     pub origin: Vec3,
@@ -9,11 +9,14 @@ pub struct Camera {
     pub v: Vec3,
     pub w: Vec3,
     pub lens_radius: f64,
+    pub t0: f64,
+    pub t1: f64,
 }
 
 impl Camera {
     /// vfov is the vertical field-of-view in degrees.
     /// vup is the view-up vector, generally the world up.
+    /// t0 and t1 are the minimum and maximum time to capture the image.
     pub fn new(
         look_from: Vec3,
         look_at: Vec3,
@@ -22,6 +25,8 @@ impl Camera {
         aspect_ratio: f64,
         aperture: f64,
         focus_dist: f64,
+        t0: f64,
+        t1: f64,
     ) -> Self {
         let theta = vfov.to_radians();
         let h = (0.5 * theta).tan();
@@ -48,6 +53,8 @@ impl Camera {
             v,
             w,
             lens_radius,
+            t0,
+            t1,
         }
     }
 
@@ -58,6 +65,7 @@ impl Camera {
         Ray::new(
             self.origin + offset,
             self.lower_left_corner + s * self.horizontal + t * self.vertical - self.origin - offset,
+            rand_range(self.t0, self.t1),
         )
     }
 }

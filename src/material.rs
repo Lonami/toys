@@ -23,9 +23,9 @@ pub struct Dialectric {
 
 impl Material for Lambertian {
     // Alternatively, we could scatter only with probability p and have attenuation be albedo / p.
-    fn scatter(&self, _ray: &Ray, hit: &Hit) -> Option<(Ray, Color)> {
+    fn scatter(&self, ray: &Ray, hit: &Hit) -> Option<(Ray, Color)> {
         let scatter_dir = hit.normal + Vec3::new_random_unit();
-        let scattered = Ray::new(hit.point, scatter_dir);
+        let scattered = Ray::new(hit.point, scatter_dir, ray.time);
         let attenuation = self.albedo;
         Some((scattered, attenuation))
     }
@@ -37,6 +37,7 @@ impl Material for Metal {
         let scattered = Ray::new(
             hit.point,
             reflected + self.fuzz * Vec3::new_random_in_sphere(),
+            ray.time,
         );
         let attenuation = self.albedo;
         Some((scattered, attenuation))
@@ -67,19 +68,19 @@ impl Material for Dialectric {
         if etai_over_etat * sin_theta > 1.0 {
             // No solution for the formula, can't refract
             let reflected = ray.direction.unit().reflect(hit.normal);
-            let scattered = Ray::new(hit.point, reflected);
+            let scattered = Ray::new(hit.point, reflected, ray.time);
             return Some((scattered, attenuation));
         }
 
         let reflect_prob = schlick(cos_theta, etai_over_etat);
         if rand_f64() < reflect_prob {
             let reflected = ray.direction.unit().reflect(hit.normal);
-            let scattered = Ray::new(hit.point, reflected);
+            let scattered = Ray::new(hit.point, reflected, ray.time);
             return Some((scattered, attenuation));
         }
 
         let refracted = unit_dir.refract(hit.normal, etai_over_etat);
-        let scattered = Ray::new(hit.point, refracted);
+        let scattered = Ray::new(hit.point, refracted, ray.time);
         Some((scattered, attenuation))
     }
 }
