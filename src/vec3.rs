@@ -1,4 +1,4 @@
-use crate::rand_f64;
+use crate::rand_range;
 use std::f64::consts;
 use std::fmt;
 use std::iter::Sum;
@@ -17,7 +17,7 @@ impl Vec3 {
     }
 
     pub fn new_in_range(low: f64, high: f64) -> Self {
-        let gen = || low + (high - low) * rand_f64();
+        let gen = || rand_range(low, high);
         Self {
             x: gen(),
             y: gen(),
@@ -35,7 +35,7 @@ impl Vec3 {
     }
 
     pub fn new_random_in_disk() -> Self {
-        let gen = || -1.0 + 2.0 * rand_f64();
+        let gen = || rand_range(-1.0, 1.0);
         loop {
             let vec = Self {
                 x: gen(),
@@ -49,8 +49,8 @@ impl Vec3 {
     }
 
     pub fn new_random_unit() -> Self {
-        let a = rand_f64() * 2.0 * consts::PI;
-        let z = rand_f64() * 2.0 - 1.0;
+        let a = rand_range(0.0, 2.0 * consts::PI);
+        let z = rand_range(-1.0, 1.0);
         let r = (1.0 - z.powi(2)).sqrt();
         Self {
             x: r * a.cos(),

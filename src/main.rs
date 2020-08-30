@@ -24,6 +24,10 @@ pub fn rand_f64() -> f64 {
     RNG.with(|rng| rng.borrow_mut().rand_float())
 }
 
+pub fn rand_range(low: f64, high: f64) -> f64 {
+    low + (high - low) * rand_f64()
+}
+
 fn ray_color(ray: &Ray, world: &impl Hittable, depth: usize) -> Color {
     if depth == 0 {
         return Color::new(0.0, 0.0, 0.0);
