@@ -137,7 +137,7 @@ fn main() -> io::Result<()> {
         dist_to_focus,
     );
 
-    write!(stdout, "P3\n{} {}\n255\n", IMAGE_WIDTH, IMAGE_HEIGHT)?;
+    write!(stdout, "P6\n{} {}\n255\n", IMAGE_WIDTH, IMAGE_HEIGHT)?;
 
     for i in (0..IMAGE_HEIGHT).rev() {
         eprint!("\rScanlines remaining: {:>3}", i);
@@ -159,7 +159,7 @@ fn main() -> io::Result<()> {
                 (SCALE * pixel_color.z).sqrt(),
             );
 
-            write!(stdout, "{}", color)?;
+            stdout.write_all(&color.as_bytes())?;
         }
     }
     eprintln!("\nDone.");
