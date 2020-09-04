@@ -1,4 +1,5 @@
 use crate::{Hit, Hittable, Material, Ray, Vec3, AABB};
+use std::f64::consts;
 use std::rc::Rc;
 
 pub struct Sphere {
@@ -23,6 +24,23 @@ impl Sphere {
             radius,
             material: material.into(),
         }
+    }
+
+    /// This assumes `point` is on the surface of a unit sphere.
+    fn get_uv(&self, point: Vec3) -> (f64, f64) {
+        // Scaling the spherical coordinates in [0, 1]:
+        //   u = ϕ / 2π
+        //   v = θ / π
+        //
+        // Because we're on a unit sphere, we just need to invert:
+        //   x = cos(ϕ) cos(θ)
+        //   y = sin(ϕ) cos(θ)
+        //   z = sin(θ)
+        let phi = point.z.atan2(point.x);
+        let theta = point.y.asin();
+        let u = 1.0 - (phi + consts::PI) / (2.0 * consts::PI);
+        let v = (theta - 0.5 * consts::PI) / consts::PI;
+        (u, v)
     }
 }
 
@@ -93,7 +111,8 @@ impl Hittable for Sphere {
                 let t = sol;
                 let point = ray.at(t);
                 let outward_normal = (point - self.center) / self.radius;
-                Some(ray.hit(point, outward_normal, Rc::clone(&self.material), t))
+                let (u, v) = self.get_uv(outward_normal);
+                Some(ray.hit(point, outward_normal, Rc::clone(&self.material), t, u, v))
             } else {
                 None
             }

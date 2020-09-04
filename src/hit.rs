@@ -7,6 +7,8 @@ pub struct Hit {
     pub normal: Vec3,
     pub material: Rc<dyn Material>,
     pub t: f64,
+    pub u: f64,
+    pub v: f64,
     pub front_face: bool,
 }
 

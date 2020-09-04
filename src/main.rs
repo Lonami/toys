@@ -6,6 +6,7 @@ mod hit;
 mod material;
 mod ray;
 mod sphere;
+mod texture;
 mod vec3;
 
 pub use aabb::AABB;
@@ -16,6 +17,7 @@ pub use hit::{Hit, Hittable, HittableList};
 pub use material::{Dialectric, Lambertian, Material, Metal};
 pub use ray::Ray;
 pub use sphere::{MovingSphere, Sphere};
+pub use texture::{CheckerTexture, SolidColor, Texture};
 pub use vec3::Vec3;
 
 use oorandom::Rand64;
@@ -60,7 +62,7 @@ const RANDOM_SEED: u128 = 0;
 // Image settings
 const ASPECT_RATIO: f64 = 16.0 / 9.0;
 
-const IMAGE_WIDTH: usize = 400;
+const IMAGE_WIDTH: usize = 200;
 const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
 
 const SAMPLES_PER_PIXEL: usize = 50;
@@ -69,9 +71,10 @@ const MAX_DEPTH: usize = 50;
 fn random_scene(ball_count: i32) -> HittableList {
     let mut world = HittableList::new();
 
-    let mat_ground = Box::new(Lambertian {
-        albedo: Color::new(0.5, 0.5, 0.5),
-    });
+    let mat_ground = Box::new(Lambertian::textured(Box::new(CheckerTexture::new(
+        Color::new(0.2, 0.3, 0.1),
+        Color::new(0.9, 0.9, 0.9),
+    ))));
     world.add(Box::new(Sphere::new(
         Vec3::new(0.0, -1000.0, 0.0),
         1000.0,
@@ -91,9 +94,9 @@ fn random_scene(ball_count: i32) -> HittableList {
             }
 
             let material: Box<dyn Material> = if mat_prob < 0.8 {
-                let material = Box::new(Lambertian {
-                    albedo: Color(Vec3::new_in_range(0.0, 1.0) * Vec3::new_in_range(0.0, 1.0)),
-                });
+                let material = Box::new(Lambertian::new(Color(
+                    Vec3::new_in_range(0.0, 1.0) * Vec3::new_in_range(0.0, 1.0),
+                )));
                 let center2 = center + Vec3::new(0.0, rand_range(0.0, 0.5), 0.0);
                 world.add(Box::new(MovingSphere::new(
                     center, center2, 0.0, 1.0, 0.2, material,
@@ -115,9 +118,7 @@ fn random_scene(ball_count: i32) -> HittableList {
     let mat = Box::new(Dialectric { ri: 1.5 });
     world.add(Box::new(Sphere::new(Vec3::new(0.0, 1.0, 0.0), 1.0, mat)));
 
-    let mat = Box::new(Lambertian {
-        albedo: Color::new(0.4, 0.2, 0.1),
-    });
+    let mat = Box::new(Lambertian::new(Color::new(0.4, 0.2, 0.1)));
     world.add(Box::new(Sphere::new(Vec3::new(-4.0, 1.0, 0.0), 1.0, mat)));
 
     let mat = Box::new(Metal {
@@ -137,7 +138,7 @@ fn main() -> io::Result<()> {
     let time1 = 1.0;
 
     // World
-    let world = BvhNode::new(random_scene(11), time0, time1);
+    let world = BvhNode::new(random_scene(3), time0, time1);
 
     // Camera
     let look_from = Vec3::new(13.0, 2.0, 3.0);

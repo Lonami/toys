@@ -26,6 +26,8 @@ impl Ray {
         outward_normal: Vec3,
         material: Rc<dyn Material>,
         t: f64,
+        u: f64,
+        v: f64,
     ) -> Hit {
         // This front face detection could be left up until later, and have the
         // normal always point outwards the surface instead of towards the ray.
@@ -40,6 +42,8 @@ impl Ray {
             normal,
             material,
             t,
+            u,
+            v,
             front_face,
         }
     }

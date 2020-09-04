@@ -1,4 +1,4 @@
-use crate::{rand_f64, Color, Hit, Ray, Vec3};
+use crate::{rand_f64, Color, Hit, Ray, SolidColor, Texture, Vec3};
 
 pub trait Material {
     /// Returns the resulting ray and attenuation color.
@@ -7,7 +7,7 @@ pub trait Material {
 }
 
 pub struct Lambertian {
-    pub albedo: Color,
+    pub albedo: Box<dyn Texture>,
 }
 
 pub struct Metal {
@@ -21,12 +21,24 @@ pub struct Dialectric {
     pub ri: f64,
 }
 
+impl Lambertian {
+    pub fn new(color: Color) -> Self {
+        Self {
+            albedo: Box::new(SolidColor { color }),
+        }
+    }
+
+    pub fn textured(albedo: Box<dyn Texture>) -> Self {
+        Self { albedo }
+    }
+}
+
 impl Material for Lambertian {
     // Alternatively, we could scatter only with probability p and have attenuation be albedo / p.
     fn scatter(&self, ray: &Ray, hit: &Hit) -> Option<(Ray, Color)> {
         let scatter_dir = hit.normal + Vec3::new_random_unit();
         let scattered = Ray::new(hit.point, scatter_dir, ray.time);
-        let attenuation = self.albedo;
+        let attenuation = self.albedo.value(hit.u, hit.v, hit.point);
         Some((scattered, attenuation))
     }
 }
