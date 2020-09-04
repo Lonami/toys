@@ -68,6 +68,7 @@ const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
 const SAMPLES_PER_PIXEL: usize = 50;
 const MAX_DEPTH: usize = 50;
 
+#[allow(dead_code)]
 fn random_scene(ball_count: i32) -> HittableList {
     let mut world = HittableList::new();
 
@@ -130,6 +131,27 @@ fn random_scene(ball_count: i32) -> HittableList {
     world
 }
 
+#[allow(dead_code)]
+fn two_spheres() -> HittableList {
+    let mut world = HittableList::new();
+
+    let new_sphere = |y| {
+        Box::new(Sphere::new(
+            Vec3::new(0.0, y, 0.0),
+            10.0,
+            Box::new(Lambertian::textured(Box::new(CheckerTexture::new(
+                Color::new(0.2, 0.3, 0.1),
+                Color::new(0.9, 0.9, 0.9),
+            )))),
+        ))
+    };
+
+    world.add(new_sphere(-10.0));
+    world.add(new_sphere(10.0));
+
+    world
+}
+
 fn main() -> io::Result<()> {
     // Setup
     let stdout = io::stdout();
@@ -138,7 +160,7 @@ fn main() -> io::Result<()> {
     let time1 = 1.0;
 
     // World
-    let world = BvhNode::new(random_scene(3), time0, time1);
+    let world = BvhNode::new(two_spheres(), time0, time1);
 
     // Camera
     let look_from = Vec3::new(13.0, 2.0, 3.0);
