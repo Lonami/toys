@@ -94,6 +94,11 @@ impl Vec3 {
         let r_out_parallel = -(1.0 - r_out_perp.len_sq()).abs().sqrt() * normal;
         r_out_perp + r_out_parallel
     }
+
+    #[inline(always)]
+    pub fn component(&self, which: usize) -> f64 {
+        [self.x, self.y, self.z][which]
+    }
 }
 
 impl Neg for Vec3 {

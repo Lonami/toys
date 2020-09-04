@@ -1,4 +1,5 @@
-use crate::{Material, Ray, Vec3};
+use crate::{Material, Ray, Vec3, AABB};
+use std::cmp::Ordering;
 use std::rc::Rc;
 
 pub struct Hit {
@@ -11,10 +12,17 @@ pub struct Hit {
 
 pub trait Hittable {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Hit>;
+    fn bounding_box(&self, t0: f64, t1: f64) -> Option<AABB>;
+
+    fn compare_box(&self, other: &Rc<dyn Hittable>, axis: usize) -> Option<Ordering> {
+        let a = self.bounding_box(0.0, 0.0)?;
+        let b = other.bounding_box(0.0, 0.0)?;
+        a.min.component(axis).partial_cmp(&b.min.component(axis))
+    }
 }
 
 pub struct HittableList {
-    objects: Vec<Box<dyn Hittable>>,
+    pub objects: Vec<Box<dyn Hittable>>,
 }
 
 impl HittableList {
@@ -44,5 +52,18 @@ impl Hittable for HittableList {
             }
         }
         found_hit
+    }
+
+    fn bounding_box(&self, t0: f64, t1: f64) -> Option<AABB> {
+        let mut iter = self.objects.iter();
+
+        let first = iter.next()?;
+        let mut result = first.bounding_box(t0, t1)?;
+
+        while let Some(obj) = iter.next() {
+            result = AABB::surrounding(result, obj.bounding_box(t0, t1)?);
+        }
+
+        Some(result)
     }
 }

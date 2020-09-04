@@ -1,3 +1,5 @@
+mod aabb;
+mod bvh;
 mod camera;
 mod color;
 mod hit;
@@ -6,6 +8,8 @@ mod ray;
 mod sphere;
 mod vec3;
 
+pub use aabb::AABB;
+pub use bvh::BvhNode;
 pub use camera::Camera;
 pub use color::Color;
 pub use hit::{Hit, Hittable, HittableList};
@@ -26,6 +30,10 @@ pub fn rand_f64() -> f64 {
 
 pub fn rand_range(low: f64, high: f64) -> f64 {
     low + (high - low) * rand_f64()
+}
+
+pub fn rand_u64(low: u64, high: u64) -> u64 {
+    RNG.with(|rng| rng.borrow_mut().rand_range(low..high))
 }
 
 fn ray_color(ray: &Ray, world: &impl Hittable, depth: usize) -> Color {
@@ -125,9 +133,11 @@ fn main() -> io::Result<()> {
     // Setup
     let stdout = io::stdout();
     let mut stdout = BufWriter::new(stdout.lock());
+    let time0 = 0.0;
+    let time1 = 1.0;
 
     // World
-    let world = random_scene(11);
+    let world = BvhNode::new(random_scene(11), time0, time1);
 
     // Camera
     let look_from = Vec3::new(13.0, 2.0, 3.0);
@@ -144,8 +154,8 @@ fn main() -> io::Result<()> {
         ASPECT_RATIO,
         aperture,
         dist_to_focus,
-        0.0,
-        1.0,
+        time0,
+        time1,
     );
 
     write!(stdout, "P6\n{} {}\n255\n", IMAGE_WIDTH, IMAGE_HEIGHT)?;

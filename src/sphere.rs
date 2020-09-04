@@ -1,4 +1,4 @@
-use crate::{Hit, Hittable, Material, Ray, Vec3};
+use crate::{Hit, Hittable, Material, Ray, Vec3, AABB};
 use std::rc::Rc;
 
 pub struct Sphere {
@@ -43,6 +43,11 @@ impl MovingSphere {
             radius,
             material: material.into(),
         }
+    }
+
+    pub fn center(&self, t: f64) -> Vec3 {
+        self.center0
+            + ((t - self.time0) / (self.time1 - self.time0)) * (self.center1 - self.center0)
     }
 }
 
@@ -97,17 +102,36 @@ impl Hittable for Sphere {
         let root = discriminant.sqrt();
         check_solution((-half_b - root) / a).or_else(|| check_solution((-half_b + root) / a))
     }
+
+    fn bounding_box(&self, _t0: f64, _t1: f64) -> Option<AABB> {
+        let offset = Vec3::new(self.radius, self.radius, self.radius);
+        Some(AABB {
+            min: self.center - offset,
+            max: self.center + offset,
+        })
+    }
 }
 
 impl Hittable for MovingSphere {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Hit> {
-        let center = self.center0
-            + ((ray.time - self.time0) / (self.time1 - self.time0)) * (self.center1 - self.center0);
         Sphere {
-            center,
+            center: self.center(ray.time),
             radius: self.radius,
             material: Rc::clone(&self.material),
         }
         .hit(ray, t_min, t_max)
+    }
+
+    fn bounding_box(&self, t0: f64, t1: f64) -> Option<AABB> {
+        let offset = Vec3::new(self.radius, self.radius, self.radius);
+        let box0 = AABB {
+            min: self.center(t0) - offset,
+            max: self.center(t0) + offset,
+        };
+        let box1 = AABB {
+            min: self.center(t1) - offset,
+            max: self.center(t1) + offset,
+        };
+        Some(AABB::surrounding(box0, box1))
     }
 }
