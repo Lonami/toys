@@ -4,6 +4,7 @@ mod camera;
 mod color;
 mod hit;
 mod material;
+mod perlin;
 mod ray;
 mod sphere;
 mod texture;
@@ -15,9 +16,10 @@ pub use camera::Camera;
 pub use color::Color;
 pub use hit::{Hit, Hittable, HittableList};
 pub use material::{Dialectric, Lambertian, Material, Metal};
+pub use perlin::Perlin;
 pub use ray::Ray;
 pub use sphere::{MovingSphere, Sphere};
-pub use texture::{CheckerTexture, SolidColor, Texture};
+pub use texture::{CheckerTexture, NoiseTexture, SolidColor, Texture};
 pub use vec3::Vec3;
 
 use oorandom::Rand64;
@@ -152,6 +154,24 @@ fn two_spheres() -> HittableList {
     world
 }
 
+#[allow(dead_code)]
+fn two_perlin_spheres() -> HittableList {
+    let mut world = HittableList::new();
+
+    let new_sphere = |y, size| {
+        Box::new(Sphere::new(
+            Vec3::new(0.0, y, 0.0),
+            size,
+            Box::new(Lambertian::textured(Box::new(NoiseTexture::new()))),
+        ))
+    };
+
+    world.add(new_sphere(-1000.0, 1000.0));
+    world.add(new_sphere(2.0, 2.0));
+
+    world
+}
+
 fn main() -> io::Result<()> {
     // Setup
     let stdout = io::stdout();
@@ -160,7 +180,7 @@ fn main() -> io::Result<()> {
     let time1 = 1.0;
 
     // World
-    let world = BvhNode::new(two_spheres(), time0, time1);
+    let world = BvhNode::new(two_perlin_spheres(), time0, time1);
 
     // Camera
     let look_from = Vec3::new(13.0, 2.0, 3.0);
