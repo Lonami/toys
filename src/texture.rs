@@ -55,6 +55,11 @@ impl Texture for CheckerTexture {
 
 impl Texture for NoiseTexture {
     fn value(&self, _u: f64, _v: f64, point: Vec3) -> Color {
-        Color(Vec3::new(1.0, 1.0, 1.0) * self.perlin.turbulence(self.scale * point, 7))
+        Color(
+            Vec3::new(1.0, 1.0, 1.0)
+                // May obtain negative values, shift them to be positive
+                * 0.5
+                * (1.0 + f64::sin(self.scale * point.z + 10.0 * self.perlin.turbulence(point, 7))),
+        )
     }
 }
