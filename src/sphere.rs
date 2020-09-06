@@ -39,7 +39,7 @@ impl Sphere {
         let phi = point.z.atan2(point.x);
         let theta = point.y.asin();
         let u = 1.0 - (phi + consts::PI) / (2.0 * consts::PI);
-        let v = (theta - 0.5 * consts::PI) / consts::PI;
+        let v = (theta + 0.5 * consts::PI) / consts::PI;
         (u, v)
     }
 }
