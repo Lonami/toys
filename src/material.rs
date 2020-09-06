@@ -4,6 +4,12 @@ pub trait Material {
     /// Returns the resulting ray and attenuation color.
     // Accept a `Hit` to avoid passing a lot of parameters.
     fn scatter(&self, ray: &Ray, hit: &Hit) -> Option<(Ray, Color)>;
+
+    /// Emitted light.
+    // This could be part of the hit record instead.
+    fn emit(&self, _u: f64, _v: f64, _point: Vec3) -> Color {
+        Color::new(0.0, 0.0, 0.0)
+    }
 }
 
 pub struct Lambertian {
@@ -21,6 +27,10 @@ pub struct Dialectric {
     pub ri: f64,
 }
 
+pub struct DiffuseLight {
+    pub emit: Box<dyn Texture>,
+}
+
 impl Lambertian {
     pub fn new(color: Color) -> Self {
         Self {
@@ -30,6 +40,14 @@ impl Lambertian {
 
     pub fn textured(albedo: Box<dyn Texture>) -> Self {
         Self { albedo }
+    }
+}
+
+impl DiffuseLight {
+    pub fn new(color: Color) -> Self {
+        Self {
+            emit: Box::new(SolidColor { color }),
+        }
     }
 }
 
@@ -94,5 +112,15 @@ impl Material for Dialectric {
         let refracted = unit_dir.refract(hit.normal, etai_over_etat);
         let scattered = Ray::new(hit.point, refracted, ray.time);
         Some((scattered, attenuation))
+    }
+}
+
+impl Material for DiffuseLight {
+    fn scatter(&self, _ray: &Ray, _hit: &Hit) -> Option<(Ray, Color)> {
+        None
+    }
+
+    fn emit(&self, u: f64, v: f64, point: Vec3) -> Color {
+        self.emit.value(u, v, point)
     }
 }

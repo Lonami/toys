@@ -15,7 +15,7 @@ pub use bvh::BvhNode;
 pub use camera::Camera;
 pub use color::Color;
 pub use hit::{Hit, Hittable, HittableList};
-pub use material::{Dialectric, Lambertian, Material, Metal};
+pub use material::{Dialectric, DiffuseLight, Lambertian, Material, Metal};
 pub use perlin::Perlin;
 pub use ray::Ray;
 pub use sphere::{MovingSphere, Sphere};
@@ -40,23 +40,23 @@ pub fn rand_u64(low: u64, high: u64) -> u64 {
     RNG.with(|rng| rng.borrow_mut().rand_range(low..high))
 }
 
-fn ray_color(ray: &Ray, world: &impl Hittable, depth: usize) -> Color {
+fn ray_color(ray: &Ray, background: &Color, world: &impl Hittable, depth: usize) -> Color {
     if depth == 0 {
+        // No more light is gathered.
         return Color::new(0.0, 0.0, 0.0);
     }
 
     // Use a value close to 0 to avoid the shadow acne problem since floats are not perfect
     if let Some(hit) = world.hit(ray, 0.001, f64::MAX) {
+        let emitted = hit.material.emit(hit.u, hit.v, hit.point);
         if let Some((scattered, attenuation)) = hit.material.scatter(ray, &hit) {
-            return Color(attenuation.0 * ray_color(&scattered, world, depth - 1).0);
+            Color(emitted.0 + attenuation.0 * ray_color(&scattered, background, world, depth - 1).0)
         } else {
-            return Color::new(0.0, 0.0, 0.0);
+            emitted
         }
+    } else {
+        *background
     }
-
-    let dir = ray.direction.unit();
-    let t = 0.5 * (dir.y + 1.0);
-    Color((1.0 - t) * Vec3::new(1.0, 1.0, 1.0) + t * Vec3::new(0.5, 0.7, 1.0))
 }
 
 const RANDOM_SEED: u128 = 0;
@@ -196,6 +196,7 @@ fn main() -> io::Result<()> {
 
     // World
     let world = BvhNode::new(earth(), time0, time1);
+    let background = Color::new(0.0, 0.0, 0.0);
 
     // Camera
     let look_from = Vec3::new(13.0, 2.0, 3.0);
@@ -226,7 +227,7 @@ fn main() -> io::Result<()> {
                     let u = (rand_f64() + j as f64) / (IMAGE_WIDTH as f64 - 1.0);
                     let v = (rand_f64() + i as f64) / (IMAGE_HEIGHT as f64 - 1.0);
                     let ray = camera.get_ray(u, v);
-                    ray_color(&ray, &world, MAX_DEPTH).0
+                    ray_color(&ray, &background, &world, MAX_DEPTH).0
                 })
                 .sum();
 
