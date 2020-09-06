@@ -64,12 +64,6 @@ fn ray_color(ray: &Ray, background: &Color, world: &impl Hittable, depth: usize)
 
 const RANDOM_SEED: u128 = 0;
 
-// Image settings
-const ASPECT_RATIO: f64 = 16.0 / 9.0;
-
-const IMAGE_WIDTH: usize = 200;
-const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
-
 const MAX_DEPTH: usize = 50;
 
 fn random_scene(ball_count: i32) -> HittableList {
@@ -217,6 +211,40 @@ fn light() -> HittableList {
     world
 }
 
+fn cornell_box() -> HittableList {
+    let mut world = HittableList::new();
+
+    let red = Box::new(Lambertian::new(Color::new(0.65, 0.05, 0.05)));
+    let white = || Box::new(Lambertian::new(Color::new(0.73, 0.73, 0.73)));
+    let green = Box::new(Lambertian::new(Color::new(0.12, 0.45, 0.15)));
+    let light = Box::new(DiffuseLight::new(Color::new(15.0, 15.0, 15.0)));
+
+    world.add(Box::new(YzRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green)));
+    world.add(Box::new(YzRect::new(0.0, 555.0, 0.0, 555.0, 0.0, red)));
+    world.add(Box::new(XzRect::new(
+        213.0, 343.0, 227.0, 332.0, 554.0, light,
+    )));
+    world.add(Box::new(XzRect::new(0.0, 555.0, 0.0, 555.0, 0.0, white())));
+    world.add(Box::new(XzRect::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white(),
+    )));
+    world.add(Box::new(XyRect::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white(),
+    )));
+
+    world
+}
+
 fn main() -> io::Result<()> {
     // Setup
     let stdout = io::stdout();
@@ -229,16 +257,18 @@ fn main() -> io::Result<()> {
         scene = s;
         scene.as_ref()
     } else {
-        "light"
+        "cornell"
     };
 
     // World and camera
     let mut background = Color::new(0.7, 0.8, 1.0);
     let mut look_from = Vec3::new(13.0, 2.0, 3.0);
     let mut look_at = Vec3::new(0.0, 0.0, 0.0);
-    let vfov = 20.0;
+    let mut vfov = 20.0;
     let mut aperture = 0.0;
     let mut samples_per_pixel = 50;
+    let mut aspect_ratio = 16.0 / 9.0;
+    let mut image_width = 200;
 
     let world = match scene {
         "random" => {
@@ -255,9 +285,19 @@ fn main() -> io::Result<()> {
             look_at = Vec3::new(0.0, 2.0, 0.0);
             light()
         }
+        "cornell" => {
+            aspect_ratio = 1.0;
+            image_width = 600;
+            samples_per_pixel = 200;
+            background = Color::new(0.0, 0.0, 0.0);
+            look_from = Vec3::new(278.0, 278.0, -800.0);
+            look_at = Vec3::new(278.0, 278.0, 0.0);
+            vfov = 40.0;
+            cornell_box()
+        }
         _ => {
             eprintln!("unknown scene '{}'; valid scenes are:", scene);
-            eprintln!("random, 2spheres, 2perlin, earth, light (default)");
+            eprintln!("random, 2spheres, 2perlin, earth, light, cornell (default)");
             std::process::exit(1);
         }
     };
@@ -265,29 +305,30 @@ fn main() -> io::Result<()> {
     let world = BvhNode::new(world, time0, time1);
     let vup = Vec3::new(0.0, 1.0, 0.0);
     let dist_to_focus = 10.0;
+    let image_height: usize = (image_width as f64 / aspect_ratio) as usize;
 
     let camera = Camera::new(
         look_from,
         look_at,
         vup,
         vfov,
-        ASPECT_RATIO,
+        aspect_ratio,
         aperture,
         dist_to_focus,
         time0,
         time1,
     );
 
-    write!(stdout, "P6\n{} {}\n255\n", IMAGE_WIDTH, IMAGE_HEIGHT)?;
+    write!(stdout, "P6\n{} {}\n255\n", image_width, image_height)?;
 
     let scale: f64 = 1.0 / samples_per_pixel as f64;
-    for i in (0..IMAGE_HEIGHT).rev() {
+    for i in (0..image_height).rev() {
         eprint!("\rScanlines remaining: {:>3}", i);
-        for j in 0..IMAGE_WIDTH {
+        for j in 0..image_width {
             let pixel_color: Vec3 = (0..samples_per_pixel)
                 .map(|_| {
-                    let u = (rand_f64() + j as f64) / (IMAGE_WIDTH as f64 - 1.0);
-                    let v = (rand_f64() + i as f64) / (IMAGE_HEIGHT as f64 - 1.0);
+                    let u = (rand_f64() + j as f64) / (image_width as f64 - 1.0);
+                    let v = (rand_f64() + i as f64) / (image_height as f64 - 1.0);
                     let ray = camera.get_ray(u, v);
                     ray_color(&ray, &background, &world, MAX_DEPTH).0
                 })
