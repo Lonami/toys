@@ -9,6 +9,7 @@ mod ray;
 mod sphere;
 mod texture;
 mod vec3;
+mod xy_rect;
 
 pub use aabb::AABB;
 pub use bvh::BvhNode;
@@ -21,6 +22,7 @@ pub use ray::Ray;
 pub use sphere::{MovingSphere, Sphere};
 pub use texture::{CheckerTexture, ImageTexture, NoiseTexture, SolidColor, Texture};
 pub use vec3::Vec3;
+pub use xy_rect::XyRect;
 
 use oorandom::Rand64;
 use std::cell::RefCell;
@@ -68,7 +70,6 @@ const ASPECT_RATIO: f64 = 16.0 / 9.0;
 const IMAGE_WIDTH: usize = 200;
 const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
 
-const SAMPLES_PER_PIXEL: usize = 50;
 const MAX_DEPTH: usize = 50;
 
 fn random_scene(ball_count: i32) -> HittableList {
@@ -184,6 +185,38 @@ fn earth() -> HittableList {
     world
 }
 
+fn light() -> HittableList {
+    let mut world = HittableList::new();
+
+    let new_sphere = |y, size| {
+        Box::new(Sphere::new(
+            Vec3::new(0.0, y, 0.0),
+            size,
+            Box::new(Lambertian::textured(Box::new(NoiseTexture::scaled(4.0)))),
+        ))
+    };
+
+    world.add(new_sphere(-1000.0, 1000.0));
+    world.add(new_sphere(2.0, 2.0));
+
+    world.add(Box::new(Sphere::new(
+        Vec3::new(0.0, 7.0, 0.0),
+        2.0,
+        Box::new(DiffuseLight::new(Color::new(8.0, 8.0, 8.0))),
+    )));
+
+    world.add(Box::new(XyRect::new(
+        3.0,
+        5.0,
+        1.0,
+        3.0,
+        -2.0,
+        Box::new(DiffuseLight::new(Color::new(4.0, 4.0, 4.0))),
+    )));
+
+    world
+}
+
 fn main() -> io::Result<()> {
     // Setup
     let stdout = io::stdout();
@@ -201,10 +234,11 @@ fn main() -> io::Result<()> {
 
     // World and camera
     let mut background = Color::new(0.7, 0.8, 1.0);
-    let look_from = Vec3::new(13.0, 2.0, 3.0);
-    let look_at = Vec3::new(0.0, 0.0, 0.0);
-    let mut vfov = 20.0;
+    let mut look_from = Vec3::new(13.0, 2.0, 3.0);
+    let mut look_at = Vec3::new(0.0, 0.0, 0.0);
+    let vfov = 20.0;
     let mut aperture = 0.0;
+    let mut samples_per_pixel = 50;
 
     let world = match scene {
         "random" => {
@@ -215,9 +249,11 @@ fn main() -> io::Result<()> {
         "2perlin" => two_perlin_spheres(),
         "earth" => earth(),
         "light" => {
+            samples_per_pixel = 400;
             background = Color::new(0.0, 0.0, 0.0);
-            vfov = 40.0;
-            earth()
+            look_from = Vec3::new(26.0, 3.0, 6.0);
+            look_at = Vec3::new(0.0, 2.0, 0.0);
+            light()
         }
         _ => {
             eprintln!("unknown scene '{}'; valid scenes are:", scene);
@@ -244,10 +280,11 @@ fn main() -> io::Result<()> {
 
     write!(stdout, "P6\n{} {}\n255\n", IMAGE_WIDTH, IMAGE_HEIGHT)?;
 
+    let scale: f64 = 1.0 / samples_per_pixel as f64;
     for i in (0..IMAGE_HEIGHT).rev() {
         eprint!("\rScanlines remaining: {:>3}", i);
         for j in 0..IMAGE_WIDTH {
-            let pixel_color: Vec3 = (0..SAMPLES_PER_PIXEL)
+            let pixel_color: Vec3 = (0..samples_per_pixel)
                 .map(|_| {
                     let u = (rand_f64() + j as f64) / (IMAGE_WIDTH as f64 - 1.0);
                     let v = (rand_f64() + i as f64) / (IMAGE_HEIGHT as f64 - 1.0);
@@ -257,11 +294,10 @@ fn main() -> io::Result<()> {
                 .sum();
 
             // Gama-correct the color for gamma = 2.0 (square root)
-            const SCALE: f64 = 1.0 / SAMPLES_PER_PIXEL as f64;
             let color = Color::new(
-                (SCALE * pixel_color.x).sqrt(),
-                (SCALE * pixel_color.y).sqrt(),
-                (SCALE * pixel_color.z).sqrt(),
+                (scale * pixel_color.x).sqrt(),
+                (scale * pixel_color.y).sqrt(),
+                (scale * pixel_color.z).sqrt(),
             );
 
             stdout.write_all(&color.as_bytes())?;
