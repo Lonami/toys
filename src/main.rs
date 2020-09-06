@@ -6,10 +6,10 @@ mod hit;
 mod material;
 mod perlin;
 mod ray;
+mod rect;
 mod sphere;
 mod texture;
 mod vec3;
-mod xy_rect;
 
 pub use aabb::AABB;
 pub use bvh::BvhNode;
@@ -19,10 +19,10 @@ pub use hit::{Hit, Hittable, HittableList};
 pub use material::{Dialectric, DiffuseLight, Lambertian, Material, Metal};
 pub use perlin::Perlin;
 pub use ray::Ray;
+pub use rect::{XyRect, XzRect, YzRect};
 pub use sphere::{MovingSphere, Sphere};
 pub use texture::{CheckerTexture, ImageTexture, NoiseTexture, SolidColor, Texture};
 pub use vec3::Vec3;
-pub use xy_rect::XyRect;
 
 use oorandom::Rand64;
 use std::cell::RefCell;
