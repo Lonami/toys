@@ -24,6 +24,7 @@ pub use vec3::Vec3;
 
 use oorandom::Rand64;
 use std::cell::RefCell;
+use std::env;
 use std::io::{self, BufWriter, Write};
 
 thread_local!(static RNG: RefCell<Rand64> = RefCell::new(Rand64::new(RANDOM_SEED)));
@@ -70,7 +71,6 @@ const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
 const SAMPLES_PER_PIXEL: usize = 50;
 const MAX_DEPTH: usize = 50;
 
-#[allow(dead_code)]
 fn random_scene(ball_count: i32) -> HittableList {
     let mut world = HittableList::new();
 
@@ -133,7 +133,6 @@ fn random_scene(ball_count: i32) -> HittableList {
     world
 }
 
-#[allow(dead_code)]
 fn two_spheres() -> HittableList {
     let mut world = HittableList::new();
 
@@ -154,7 +153,6 @@ fn two_spheres() -> HittableList {
     world
 }
 
-#[allow(dead_code)]
 fn two_perlin_spheres() -> HittableList {
     let mut world = HittableList::new();
 
@@ -172,7 +170,6 @@ fn two_perlin_spheres() -> HittableList {
     world
 }
 
-#[allow(dead_code)]
 fn earth() -> HittableList {
     let mut world = HittableList::new();
 
@@ -194,22 +191,50 @@ fn main() -> io::Result<()> {
     let time0 = 0.0;
     let time1 = 1.0;
 
-    // World
-    let world = BvhNode::new(earth(), time0, time1);
-    let background = Color::new(0.0, 0.0, 0.0);
+    let scene;
+    let scene = if let Some(s) = env::args().nth(1) {
+        scene = s;
+        scene.as_ref()
+    } else {
+        "light"
+    };
 
-    // Camera
+    // World and camera
+    let mut background = Color::new(0.7, 0.8, 1.0);
     let look_from = Vec3::new(13.0, 2.0, 3.0);
     let look_at = Vec3::new(0.0, 0.0, 0.0);
+    let mut vfov = 20.0;
+    let mut aperture = 0.0;
+
+    let world = match scene {
+        "random" => {
+            aperture = 0.1;
+            random_scene(11)
+        }
+        "2spheres" => two_spheres(),
+        "2perlin" => two_perlin_spheres(),
+        "earth" => earth(),
+        "light" => {
+            background = Color::new(0.0, 0.0, 0.0);
+            vfov = 40.0;
+            earth()
+        }
+        _ => {
+            eprintln!("unknown scene '{}'; valid scenes are:", scene);
+            eprintln!("random, 2spheres, 2perlin, earth, light (default)");
+            std::process::exit(1);
+        }
+    };
+
+    let world = BvhNode::new(world, time0, time1);
     let vup = Vec3::new(0.0, 1.0, 0.0);
     let dist_to_focus = 10.0;
-    let aperture = 0.1;
 
     let camera = Camera::new(
         look_from,
         look_at,
         vup,
-        20.0,
+        vfov,
         ASPECT_RATIO,
         aperture,
         dist_to_focus,
