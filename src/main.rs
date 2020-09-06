@@ -19,7 +19,7 @@ pub use material::{Dialectric, Lambertian, Material, Metal};
 pub use perlin::Perlin;
 pub use ray::Ray;
 pub use sphere::{MovingSphere, Sphere};
-pub use texture::{CheckerTexture, NoiseTexture, SolidColor, Texture};
+pub use texture::{CheckerTexture, ImageTexture, NoiseTexture, SolidColor, Texture};
 pub use vec3::Vec3;
 
 use oorandom::Rand64;
@@ -172,6 +172,21 @@ fn two_perlin_spheres() -> HittableList {
     world
 }
 
+#[allow(dead_code)]
+fn earth() -> HittableList {
+    let mut world = HittableList::new();
+
+    world.add(Box::new(Sphere::new(
+        Vec3::new(0.0, 0.0, 0.0),
+        2.0,
+        Box::new(Lambertian::textured(Box::new(ImageTexture::load(
+            "img/earthmap.jpg",
+        )))),
+    )));
+
+    world
+}
+
 fn main() -> io::Result<()> {
     // Setup
     let stdout = io::stdout();
@@ -180,7 +195,7 @@ fn main() -> io::Result<()> {
     let time1 = 1.0;
 
     // World
-    let world = BvhNode::new(two_perlin_spheres(), time0, time1);
+    let world = BvhNode::new(earth(), time0, time1);
 
     // Camera
     let look_from = Vec3::new(13.0, 2.0, 3.0);

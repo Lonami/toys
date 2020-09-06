@@ -6,3 +6,4 @@ edition = "2018"
 
 [dependencies]
 oorandom = "11.1.2"
+jpeg-decoder = "0.1.20"
