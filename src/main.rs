@@ -1,6 +1,7 @@
 mod aabb;
 mod bvh;
 mod camera;
+mod carton;
 mod color;
 mod hit;
 mod material;
@@ -14,6 +15,7 @@ mod vec3;
 pub use aabb::AABB;
 pub use bvh::BvhNode;
 pub use camera::Camera;
+pub use carton::Carton;
 pub use color::Color;
 pub use hit::{Hit, Hittable, HittableList};
 pub use material::{Dialectric, DiffuseLight, Lambertian, Material, Metal};
@@ -28,6 +30,7 @@ use oorandom::Rand64;
 use std::cell::RefCell;
 use std::env;
 use std::io::{self, BufWriter, Write};
+use std::rc::Rc;
 
 thread_local!(static RNG: RefCell<Rand64> = RefCell::new(Rand64::new(RANDOM_SEED)));
 
@@ -205,7 +208,7 @@ fn light() -> HittableList {
         1.0,
         3.0,
         -2.0,
-        Box::new(DiffuseLight::new(Color::new(4.0, 4.0, 4.0))),
+        Rc::new(DiffuseLight::new(Color::new(4.0, 4.0, 4.0))),
     )));
 
     world
@@ -214,24 +217,31 @@ fn light() -> HittableList {
 fn cornell_box() -> HittableList {
     let mut world = HittableList::new();
 
-    let red = Box::new(Lambertian::new(Color::new(0.65, 0.05, 0.05)));
-    let white = || Box::new(Lambertian::new(Color::new(0.73, 0.73, 0.73)));
-    let green = Box::new(Lambertian::new(Color::new(0.12, 0.45, 0.15)));
-    let light = Box::new(DiffuseLight::new(Color::new(15.0, 15.0, 15.0)));
+    let red = Rc::new(Lambertian::new(Color::new(0.65, 0.05, 0.05)));
+    let white = Rc::new(Lambertian::new(Color::new(0.73, 0.73, 0.73)));
+    let green = Rc::new(Lambertian::new(Color::new(0.12, 0.45, 0.15)));
+    let light = Rc::new(DiffuseLight::new(Color::new(15.0, 15.0, 15.0)));
 
     world.add(Box::new(YzRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green)));
     world.add(Box::new(YzRect::new(0.0, 555.0, 0.0, 555.0, 0.0, red)));
     world.add(Box::new(XzRect::new(
         213.0, 343.0, 227.0, 332.0, 554.0, light,
     )));
-    world.add(Box::new(XzRect::new(0.0, 555.0, 0.0, 555.0, 0.0, white())));
+    world.add(Box::new(XzRect::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        0.0,
+        white.clone(),
+    )));
     world.add(Box::new(XzRect::new(
         0.0,
         555.0,
         0.0,
         555.0,
         555.0,
-        white(),
+        white.clone(),
     )));
     world.add(Box::new(XyRect::new(
         0.0,
@@ -239,7 +249,18 @@ fn cornell_box() -> HittableList {
         0.0,
         555.0,
         555.0,
-        white(),
+        white.clone(),
+    )));
+
+    world.add(Box::new(Carton::new(
+        Vec3::new(130.0, 0.0, 65.0),
+        Vec3::new(295.0, 165.0, 230.0),
+        white.clone(),
+    )));
+    world.add(Box::new(Carton::new(
+        Vec3::new(265.0, 0.0, 295.0),
+        Vec3::new(430.0, 330.0, 460.0),
+        white,
     )));
 
     world
@@ -287,7 +308,7 @@ fn main() -> io::Result<()> {
         }
         "cornell" => {
             aspect_ratio = 1.0;
-            image_width = 600;
+            image_width = 200;
             samples_per_pixel = 200;
             background = Color::new(0.0, 0.0, 0.0);
             look_from = Vec3::new(278.0, 278.0, -800.0);

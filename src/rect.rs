@@ -31,40 +31,40 @@ pub struct YzRect {
 }
 
 impl XyRect {
-    pub fn new(x0: f64, x1: f64, y0: f64, y1: f64, k: f64, material: Box<dyn Material>) -> Self {
+    pub fn new(x0: f64, x1: f64, y0: f64, y1: f64, k: f64, material: Rc<dyn Material>) -> Self {
         Self {
             x0,
             x1,
             y0,
             y1,
             k,
-            material: material.into(),
+            material,
         }
     }
 }
 
 impl XzRect {
-    pub fn new(x0: f64, x1: f64, z0: f64, z1: f64, k: f64, material: Box<dyn Material>) -> Self {
+    pub fn new(x0: f64, x1: f64, z0: f64, z1: f64, k: f64, material: Rc<dyn Material>) -> Self {
         Self {
             x0,
             x1,
             z0,
             z1,
             k,
-            material: material.into(),
+            material,
         }
     }
 }
 
 impl YzRect {
-    pub fn new(y0: f64, y1: f64, z0: f64, z1: f64, k: f64, material: Box<dyn Material>) -> Self {
+    pub fn new(y0: f64, y1: f64, z0: f64, z1: f64, k: f64, material: Rc<dyn Material>) -> Self {
         Self {
             y0,
             y1,
             z0,
             z1,
             k,
-            material: material.into(),
+            material,
         }
     }
 }
