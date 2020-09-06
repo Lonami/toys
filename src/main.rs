@@ -162,7 +162,7 @@ fn two_perlin_spheres() -> HittableList {
         Box::new(Sphere::new(
             Vec3::new(0.0, y, 0.0),
             size,
-            Box::new(Lambertian::textured(Box::new(NoiseTexture::new()))),
+            Box::new(Lambertian::textured(Box::new(NoiseTexture::scaled(4.0)))),
         ))
     };
 
