@@ -1,4 +1,7 @@
 use oorandom::Rand32;
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::{self, BufRead as _, BufReader};
 use std::sync::Mutex;
 
 thread_local!(static RNG: Mutex<Rand32> = Mutex::new(Rand32::new(0)));
@@ -161,31 +164,23 @@ impl Network {
     ///
     /// The training set should be a vector containing rows of input data and the expected value
     /// as the last element.
-    fn train(&mut self, epochs: usize, lrate: f32, dataset: &Vec<Vec<f32>>) {
-        let output_count = self.layers[self.layers.len() - 1].neurons.len();
-        (0..epochs).for_each(|epoch| {
-            let error = dataset
-                .iter()
-                .map(|row| {
-                    let (inputs, output) = (&row[..row.len() - 1], row[row.len() - 1] as usize);
-                    let outputs = self.forward_propagate(inputs);
-                    let mut expected = vec![0.0; output_count];
-                    expected[output] = 1.0;
-                    self.backward_propagate_error(&expected);
-                    self.update_weights(inputs, lrate);
+    fn train(&mut self, epochs: usize, lrate: f32, dataset: &[Vec<f32>]) {
+        let output_count = self.layers[self.layers.len() - 1].neurons[0].weights.len();
+        (0..epochs).for_each(|_| {
+            dataset.iter().for_each(|row| {
+                let (inputs, output) = (&row[..row.len() - 1], row[row.len() - 1] as usize);
+                let outputs = self.forward_propagate(inputs);
+                let mut expected = vec![0.0; output_count];
+                expected[output] = 1.0;
+                self.backward_propagate_error(&expected);
+                self.update_weights(inputs, lrate);
 
-                    expected
-                        .iter()
-                        .zip(outputs.iter())
-                        .map(|(e, o)| (e - o).powi(2))
-                        .sum::<f32>()
-                })
-                .sum::<f32>();
-
-            eprintln!(
-                "> epoch {:.3}, lrate {:.3}, error {:.3}",
-                epoch, lrate, error
-            );
+                let _error = expected
+                    .iter()
+                    .zip(outputs.iter())
+                    .map(|(e, o)| (e - o).powi(2))
+                    .sum::<f32>();
+            });
         });
     }
 }
@@ -254,29 +249,93 @@ impl Neuron {
     }
 }
 
-fn main() {
-    let dataset = vec![
-        vec![2.7810836, 2.550537003, 0.0],
-        vec![1.465489372, 2.362125076, 0.0],
-        vec![3.396561688, 4.400293529, 0.0],
-        vec![1.38807019, 1.850220317, 0.0],
-        vec![3.06407232, 3.005305973, 0.0],
-        vec![7.627531214, 2.759262235, 1.0],
-        vec![5.332441248, 2.088626775, 1.0],
-        vec![6.922596716, 1.77106367, 1.0],
-        vec![8.675418651, -0.242068655, 1.0],
-        vec![7.673756466, 3.508563011, 1.0],
-    ];
-    let mut network = Network::new(2, 2, 2);
-    network.train(20, 0.5, &dataset);
-    dataset.into_iter().for_each(|row| {
+fn main() -> io::Result<()> {
+    // Open dataset for reading.
+    let reader = BufReader::new(File::open("wheat-seeds.csv")?);
+
+    // Load dataset into memory.
+    let mut dataset = reader
+        .lines()
+        .map(|line| {
+            line.unwrap()
+                .split(',')
+                .map(|x| x.parse().unwrap())
+                .collect()
+        })
+        .collect::<Vec<Vec<f32>>>();
+
+    // Create a mapping for the possible categories to indices.
+    let mapping = {
+        let mut mapping = HashMap::new();
+        let mut id = 0;
+        dataset.iter().for_each(|row| {
+            mapping
+                .entry(row[row.len() - 1] as usize)
+                .or_insert_with(|| {
+                    let value = id;
+                    id += 1;
+                    value
+                });
+        });
+        mapping
+    };
+
+    // Normalize the mapping (inputs in range [0, 1], and output with the mapping applied).
+    {
+        let mut limits = vec![(f32::INFINITY, f32::NEG_INFINITY); dataset[0].len() - 1];
+        dataset.iter().for_each(|row| {
+            row.iter()
+                .zip(limits.iter_mut())
+                .for_each(|(&x, (lo, hi))| {
+                    *lo = lo.min(x);
+                    *hi = hi.max(x);
+                });
+        });
+        dataset.iter_mut().for_each(|row| {
+            row.iter_mut()
+                .zip(limits.iter())
+                .for_each(|(ref mut x, (lo, hi))| **x = (**x - *lo) / (*hi - *lo));
+            let i = row.len() - 1;
+            row[i] = *mapping.get(&(row[i] as usize)).unwrap() as f32;
+        });
+    }
+
+    let inputs = dataset[0].len() - 1;
+    let hidden = 5;
+    let outputs = mapping.len();
+
+    let lrate = 0.3;
+    let epochs = 500;
+
+    let mut network = Network::new(inputs, hidden, outputs);
+
+    // Shuffle the dataset and train with the a few items, then predict the rest.
+    RNG.with(|rng| {
+        let mut rng = rng.lock().unwrap();
+        (0..dataset.len() * 5).for_each(|_| {
+            let r = 0..dataset.len() as u32;
+            dataset.swap(
+                rng.rand_range(r.clone()) as usize,
+                rng.rand_range(r) as usize,
+            );
+        });
+    });
+
+    let train = (0.9 * dataset.len() as f32) as usize;
+    let predict = &dataset[train..];
+    let train = &dataset[..train];
+
+    network.train(epochs, lrate, train);
+    predict.iter().for_each(|row| {
         let (inputs, expected) = (&row[..row.len() - 1], row[row.len() - 1] as usize);
         let predicted = network.predict_category(inputs);
         println!(
-            "{} Expected: {}; Got: {}",
-            if predicted == expected { '✅' } else { '❌' },
+            "{}: Expected: {}; Got: {}",
+            if predicted == expected { "OK" } else { "KO" },
             expected,
             predicted
         );
-    })
+    });
+
+    Ok(())
 }
