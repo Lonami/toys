@@ -10,6 +10,10 @@ fn sigmoid_transfer(activation: f32) -> f32 {
     1.0 / (1.0 + f32::exp(-activation))
 }
 
+fn sigmoid_derivative(output: f32) -> f32 {
+    output * (1.0 - output)
+}
+
 /// A multiplayer feed-forward Neural Network (NN), which implements the backpropagation
 /// algorithm. It can be used for classification and regression problems.
 ///
@@ -39,7 +43,12 @@ struct Layer {
 #[derive(Debug)]
 struct Neuron {
     weights: Vec<f32>,
+    /// The bias can also be seen as a weight whose input is always 1.
     bias: f32,
+    /// The output value from the last activation, or 0.
+    ///
+    /// Needed during backpropagation.
+    output: f32,
 }
 
 impl Network {
@@ -65,6 +74,52 @@ impl Network {
                     .collect()
             })
     }
+
+    /// The backpropagation algorithm is named for the way in which weights are trained.
+    ///
+    /// The error is calculated between the expected outputs and the outputs forward propagated
+    /// from the network. These errors are then propagated backward through the network from the
+    /// output layer to the hidden layer, assigning blame for the error and updating weights as
+    /// they go.
+    ///
+    /// To calculate the error, the slope from a neuron's output is used (hence the derivative of
+    /// the activation function).
+    ///
+    /// # Panics
+    ///
+    /// Panics if the amount of outputs does not match the amount of expected values.
+    fn backward_propagate_error(&mut self, outputs: &[f32], expected: &[f32]) {
+        // Calculate errors at the output layer.
+        let errors = outputs
+            .iter()
+            .zip(expected.iter())
+            .map(|(o, e)| (e - o) * sigmoid_derivative(*o))
+            .collect::<Vec<_>>();
+
+        self.layers
+            .iter()
+            .rev()
+            .fold((None, errors), |(last_layer, errors): (Option<&Layer>, _), layer| {
+                let errors = if let Some(last_layer) = last_layer {
+                    // Errors in hidden layer depend on the neurons' weights.
+                    (0..layer.neurons.len())
+                        .map(|i| {
+                            let error = last_layer
+                                .neurons
+                                .iter()
+                                .map(|neuron| neuron.weights[i] * errors[i])
+                                .sum::<f32>();
+
+                            error * sigmoid_derivative(layer.neurons[i].output)
+                        })
+                        .collect()
+                } else {
+                    errors
+                };
+
+                (Some(layer), dbg!(errors))
+            });
+    }
 }
 
 impl Layer {
@@ -84,6 +139,7 @@ impl Neuron {
             Self {
                 weights: (0..inputs).map(|_| rng.rand_float()).collect(),
                 bias: rng.rand_float(),
+                output: 0.0,
             }
         })
     }
@@ -105,12 +161,15 @@ impl Neuron {
             .sum::<f32>()
             + self.bias;
 
-        sigmoid_transfer(activation)
+        self.output = sigmoid_transfer(activation);
+        self.output
     }
 }
 
 fn main() {
     let mut network = Network::new(2, 1, 2);
+
     let output = network.forward_propagate(&[1.0, 0.0]);
-    dbg!(output);
+    dbg!(&output);
+    network.backward_propagate_error(&output, &[0.0, 1.0]);
 }
