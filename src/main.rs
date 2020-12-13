@@ -62,6 +62,17 @@ impl Network {
         }
     }
 
+    /// Predict which category the given inputs likely belongs to.
+    fn predict_category(&mut self, inputs: &[f32]) -> usize {
+        let outputs = self.forward_propagate(inputs);
+        outputs
+            .into_iter()
+            .enumerate()
+            .max_by(|(_, x0), (_, x1)| f32::partial_cmp(x0, x1).unwrap())
+            .unwrap()
+            .0
+    }
+
     /// Forward-propagates the given inputs through the network.
     ///
     /// This propagates the input "signals" through the network to produce an output. It
@@ -258,5 +269,14 @@ fn main() {
     ];
     let mut network = Network::new(2, 2, 2);
     network.train(20, 0.5, &dataset);
-    dbg!(network);
+    dataset.into_iter().for_each(|row| {
+        let (inputs, expected) = (&row[..row.len() - 1], row[row.len() - 1] as usize);
+        let predicted = network.predict_category(inputs);
+        println!(
+            "{} Expected: {}; Got: {}",
+            if predicted == expected { '✅' } else { '❌' },
+            expected,
+            predicted
+        );
+    })
 }
