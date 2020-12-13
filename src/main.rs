@@ -3,6 +3,13 @@ use std::sync::Mutex;
 
 thread_local!(static RNG: Mutex<Rand32> = Mutex::new(Rand32::new(0)));
 
+/// Sigmoid activation function, also known as the logistic function.
+///
+/// It can take any input value and produce a number between 0 and 1 on an S-curve.
+fn sigmoid_transfer(activation: f32) -> f32 {
+    1.0 / (1.0 + f32::exp(-activation))
+}
+
 /// A multiplayer feed-forward Neural Network (NN), which implements the backpropagation
 /// algorithm. It can be used for classification and regression problems.
 ///
@@ -41,6 +48,23 @@ impl Network {
             layers: vec![Layer::new(inputs, hidden), Layer::new(hidden, outputs)],
         }
     }
+
+    /// Forward-propagates the given inputs through the network.
+    ///
+    /// This propagates the input "signals" through the network to produce an output. It
+    /// essentially lets the network make predictions for a given set of inputs.
+    fn forward_propagate(&mut self, inputs: &[f32]) -> Vec<f32> {
+        // All outputs from one layer become inputs to the next.
+        self.layers
+            .iter_mut()
+            .fold(inputs.to_vec(), |inputs, layer| {
+                layer
+                    .neurons
+                    .iter_mut()
+                    .map(|neuron| neuron.activate(&inputs))
+                    .collect()
+            })
+    }
 }
 
 impl Layer {
@@ -63,8 +87,30 @@ impl Neuron {
             }
         })
     }
+
+    /// Calculates the activation of one neuron given an input.
+    ///
+    /// The input is either data from the input dataset, or outputs from previous layers.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the amount of inputs does not match the amount of weights.
+    fn activate(&mut self, inputs: &[f32]) -> f32 {
+        assert_eq!(inputs.len(), self.weights.len());
+        let activation = self
+            .weights
+            .iter()
+            .zip(inputs.iter())
+            .map(|(w, i)| w * i)
+            .sum::<f32>()
+            + self.bias;
+
+        sigmoid_transfer(activation)
+    }
 }
 
 fn main() {
-    dbg!(Network::new(2, 1, 2));
+    let mut network = Network::new(2, 1, 2);
+    let output = network.forward_propagate(&[1.0, 0.0]);
+    dbg!(output);
 }
