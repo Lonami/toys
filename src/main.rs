@@ -49,6 +49,10 @@ struct Neuron {
     ///
     /// Needed during backpropagation.
     output: f32,
+    /// Delta error after backpropagation with the expected outputs.
+    ///
+    /// Needed during training to update the weights.
+    delta: f32,
 }
 
 impl Network {
@@ -87,38 +91,91 @@ impl Network {
     ///
     /// # Panics
     ///
-    /// Panics if the amount of outputs does not match the amount of expected values.
-    fn backward_propagate_error(&mut self, outputs: &[f32], expected: &[f32]) {
-        // Calculate errors at the output layer.
-        let errors = outputs
-            .iter()
-            .zip(expected.iter())
-            .map(|(o, e)| (e - o) * sigmoid_derivative(*o))
-            .collect::<Vec<_>>();
-
-        self.layers
-            .iter()
-            .rev()
-            .fold((None, errors), |(last_layer, errors): (Option<&Layer>, _), layer| {
+    /// Panics if the amount of neurons in the output layer does not match the amount of expected
+    /// values.
+    fn backward_propagate_error(&mut self, expected: &[f32]) {
+        self.layers.iter_mut().rev().fold(
+            (None, Vec::new()),
+            |(last_layer, errors): (Option<&Layer>, _), layer| {
                 let errors = if let Some(last_layer) = last_layer {
                     // Errors in hidden layer depend on the neurons' weights.
-                    (0..layer.neurons.len())
-                        .map(|i| {
-                            let error = last_layer
-                                .neurons
-                                .iter()
-                                .map(|neuron| neuron.weights[i] * errors[i])
-                                .sum::<f32>();
-
-                            error * sigmoid_derivative(layer.neurons[i].output)
+                    layer
+                        .neurons
+                        .iter_mut()
+                        .zip(errors.iter())
+                        .enumerate()
+                        .map(|(i, (neuron, error))| {
+                            neuron.apply_error_from_output(i, *error, last_layer)
                         })
                         .collect()
                 } else {
-                    errors
+                    // Calculate errors at the output layer.
+                    layer
+                        .neurons
+                        .iter_mut()
+                        .zip(expected.iter())
+                        .map(|(n, e)| n.apply_error_from_expected(*e))
+                        .collect::<Vec<_>>()
                 };
 
-                (Some(layer), dbg!(errors))
+                (Some(layer), errors)
+            },
+        );
+    }
+
+    fn update_weights(&mut self, inputs: &[f32], lrate: f32) {
+        self.layers
+            .iter_mut()
+            .fold(inputs.to_vec(), |inputs, layer| {
+                layer
+                    .neurons
+                    .iter_mut()
+                    .map(|neuron| {
+                        for i in 0..inputs.len() {
+                            neuron.weights[i] += lrate * neuron.delta * inputs[i];
+                        }
+                        neuron.bias += lrate * neuron.delta;
+                        neuron.output
+                    })
+                    .collect()
             });
+    }
+
+    /// Train the network. This is done by updating it using stochastic gradient descent.
+    ///
+    /// The method will run for the specified amount of epochs, updating the network with the data
+    /// from the training dataset. Updates are made for each training pattern, known as "online
+    /// learning". The alternative, accumulating errors across an epoch before updating the
+    /// weights, is known as batch learning or batch gradient descent.
+    ///
+    /// The training set should be a vector containing rows of input data and the expected value
+    /// as the last element.
+    fn train(&mut self, epochs: usize, lrate: f32, dataset: &Vec<Vec<f32>>) {
+        let output_count = self.layers[self.layers.len() - 1].neurons.len();
+        (0..epochs).for_each(|epoch| {
+            let error = dataset
+                .iter()
+                .map(|row| {
+                    let (inputs, output) = (&row[..row.len() - 1], row[row.len() - 1] as usize);
+                    let outputs = self.forward_propagate(inputs);
+                    let mut expected = vec![0.0; output_count];
+                    expected[output] = 1.0;
+                    self.backward_propagate_error(&expected);
+                    self.update_weights(inputs, lrate);
+
+                    expected
+                        .iter()
+                        .zip(outputs.iter())
+                        .map(|(e, o)| (e - o).powi(2))
+                        .sum::<f32>()
+                })
+                .sum::<f32>();
+
+            eprintln!(
+                "> epoch {:.3}, lrate {:.3}, error {:.3}",
+                epoch, lrate, error
+            );
+        });
     }
 }
 
@@ -140,6 +197,7 @@ impl Neuron {
                 weights: (0..inputs).map(|_| rng.rand_float()).collect(),
                 bias: rng.rand_float(),
                 output: 0.0,
+                delta: 0.0,
             }
         })
     }
@@ -164,12 +222,41 @@ impl Neuron {
         self.output = sigmoid_transfer(activation);
         self.output
     }
+
+    /// Apply error from an expected output.
+    fn apply_error_from_expected(&mut self, expected: f32) -> f32 {
+        self.delta = (expected - self.output) * sigmoid_derivative(self.output);
+        self.delta
+    }
+
+    /// Apply error from the outputs of a previous layer.
+    fn apply_error_from_output(&mut self, i: usize, error: f32, last_layer: &Layer) -> f32 {
+        // TODO needing the index to access the correct weights is a bit weird
+        let error = last_layer
+            .neurons
+            .iter()
+            .map(|neuron| neuron.weights[i] * error)
+            .sum::<f32>();
+
+        self.delta = error * sigmoid_derivative(self.output);
+        self.delta
+    }
 }
 
 fn main() {
-    let mut network = Network::new(2, 1, 2);
-
-    let output = network.forward_propagate(&[1.0, 0.0]);
-    dbg!(&output);
-    network.backward_propagate_error(&output, &[0.0, 1.0]);
+    let dataset = vec![
+        vec![2.7810836, 2.550537003, 0.0],
+        vec![1.465489372, 2.362125076, 0.0],
+        vec![3.396561688, 4.400293529, 0.0],
+        vec![1.38807019, 1.850220317, 0.0],
+        vec![3.06407232, 3.005305973, 0.0],
+        vec![7.627531214, 2.759262235, 1.0],
+        vec![5.332441248, 2.088626775, 1.0],
+        vec![6.922596716, 1.77106367, 1.0],
+        vec![8.675418651, -0.242068655, 1.0],
+        vec![7.673756466, 3.508563011, 1.0],
+    ];
+    let mut network = Network::new(2, 2, 2);
+    network.train(20, 0.5, &dataset);
+    dbg!(network);
 }
