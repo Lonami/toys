@@ -108,33 +108,28 @@ impl Network {
     /// Panics if the amount of neurons in the output layer does not match the amount of expected
     /// values.
     fn backward_propagate_error(&mut self, expected: &[f32]) {
-        self.layers.iter_mut().rev().fold(
-            (None, Vec::new()),
-            |(last_layer, errors): (Option<&Layer>, _), layer| {
-                let errors = if let Some(last_layer) = last_layer {
+        self.layers
+            .iter_mut()
+            .rev()
+            .fold(None, |last_layer: Option<&Layer>, layer| {
+                if let Some(last_layer) = last_layer {
                     // Errors in hidden layer depend on the neurons' weights.
                     layer
                         .neurons
                         .iter_mut()
-                        .zip(errors.iter())
                         .enumerate()
-                        .map(|(i, (neuron, error))| {
-                            neuron.apply_error_from_output(i, *error, last_layer)
-                        })
-                        .collect()
+                        .for_each(|(i, neuron)| neuron.apply_error_from_output(i, last_layer))
                 } else {
                     // Calculate errors at the output layer.
                     layer
                         .neurons
                         .iter_mut()
                         .zip(expected.iter())
-                        .map(|(n, e)| n.apply_error_from_expected(*e))
-                        .collect::<Vec<_>>()
+                        .for_each(|(neuron, e)| neuron.apply_error_from_expected(*e));
                 };
 
-                (Some(layer), errors)
-            },
-        );
+                Some(layer)
+            });
     }
 
     fn update_weights(&mut self, inputs: &[f32], lrate: f32) {
@@ -240,22 +235,22 @@ impl Neuron {
     }
 
     /// Apply error from an expected output.
-    fn apply_error_from_expected(&mut self, expected: f32) -> f32 {
-        self.delta = (expected - self.output) * sigmoid_derivative(self.output);
-        self.delta
+    fn apply_error_from_expected(&mut self, expected: f32) {
+        let error = expected - self.output;
+        self.delta = error * sigmoid_derivative(self.output);
     }
 
     /// Apply error from the outputs of a previous layer.
-    fn apply_error_from_output(&mut self, i: usize, error: f32, last_layer: &Layer) -> f32 {
-        // TODO needing the index to access the correct weights is a bit weird
+    ///
+    /// The current neuron's index must be provided to determine which weight it connects to.
+    fn apply_error_from_output(&mut self, i: usize, last_layer: &Layer) {
         let error = last_layer
             .neurons
             .iter()
-            .map(|neuron| neuron.weights[i] * error)
+            .map(|neuron| neuron.weights[i] * neuron.delta)
             .sum::<f32>();
 
         self.delta = error * sigmoid_derivative(self.output);
-        self.delta
     }
 }
 
