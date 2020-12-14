@@ -208,6 +208,16 @@ impl Neuron {
         })
     }
 
+    #[cfg(test)]
+    fn new(weights: Vec<f32>, bias: f32) -> Self {
+        Self {
+            weights,
+            bias,
+            output: 0.0,
+            delta: 0.0,
+        }
+    }
+
     /// Calculates the activation of one neuron given an input.
     ///
     /// The input is either data from the input dataset, or outputs from previous layers.
@@ -338,4 +348,144 @@ fn main() -> io::Result<()> {
     });
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    // Precise values from these tests were generated with the reference Python implementation.
+    use super::*;
+
+    const DELTA: f32 = 0.00000001;
+    const LARGE_DELTA: f32 = 0.00001;
+
+    /// Return a neural network with 2 input neurons, 3 hidden neurons and 2 output neurons.
+    ///
+    /// It was trained to output ((i0 > 1.0 / 3.0) && (i1 < 2.0 / 3.0)) as i32, and then the
+    /// weights were rounded to the closest integer.
+    fn get_trained_nn() -> Network {
+        Network {
+            layers: vec![
+                Layer {
+                    neurons: vec![
+                        Neuron::new(vec![13.0, 4.0], -6.0),
+                        Neuron::new(vec![3.0, -5.0], -1.0),
+                        Neuron::new(vec![1.0, 9.0], -7.0),
+                    ],
+                },
+                Layer {
+                    neurons: vec![
+                        Neuron::new(vec![-9.0, -4.0, 10.0], 4.0),
+                        Neuron::new(vec![9.0, 4.0, -10.0], -5.0),
+                    ],
+                },
+            ],
+        }
+    }
+
+    /// Return a neural network that hasn't learnt any particular problem.
+    fn get_nn() -> Network {
+        Network {
+            layers: vec![
+                Layer {
+                    neurons: vec![
+                        Neuron::new(vec![1.0, -2.0], 3.0),
+                        Neuron::new(vec![-4.0, 5.0], -6.0),
+                        Neuron::new(vec![7.0, -8.0], 9.0),
+                    ],
+                },
+                Layer {
+                    neurons: vec![
+                        Neuron::new(vec![1.0, -2.0, 3.0], -4.0),
+                        Neuron::new(vec![-5.0, 6.0, -7.0], 8.0),
+                    ],
+                },
+            ],
+        }
+    }
+
+    #[test]
+    fn test_sigmoid_transfer() {
+        let pairs = [
+            (-5.0, 0.0066928509242848554),
+            (-1.0, 0.2689414213699951),
+            (-0.5, 0.3775406687981454),
+            (0.0, 0.5),
+            (0.5, 0.6224593312018546),
+            (1.0, 0.7310585786300049),
+            (5.0, 0.9933071490757153),
+        ];
+        pairs.iter().for_each(|&(x, expected)| {
+            assert!(
+                f32::abs(sigmoid_transfer(x) - expected) < DELTA,
+                format!("bad output for x = {}", x)
+            );
+        });
+    }
+
+    #[test]
+    fn test_sigmoid_derivative() {
+        let pairs = [
+            (-5.0, -30.0),
+            (-1.0, -2.0),
+            (-0.5, -0.75),
+            (0.0, 0.0),
+            (0.5, 0.25),
+            (1.0, 0.0),
+            (5.0, -20.0),
+        ];
+        pairs.iter().for_each(|&(x, expected)| {
+            assert!(
+                f32::abs(sigmoid_derivative(x) - expected) < DELTA,
+                format!("bad output for x = {}", x)
+            );
+        });
+    }
+
+    #[test]
+    fn test_predict_category() {
+        let mut network = get_trained_nn();
+
+        assert_eq!(network.predict_category(&[0.0 / 3.0, 1.0 / 3.0]), 0);
+        assert_eq!(network.predict_category(&[2.0 / 3.0, 1.0 / 3.0]), 1);
+    }
+
+    #[test]
+    fn test_forward_propagate() {
+        let mut network = get_trained_nn();
+
+        let outputs = network.forward_propagate(&[2.0 / 3.0, 1.0 / 3.0]);
+        assert!(f32::abs(outputs[0] - 0.0028697780623672) < DELTA);
+        assert!(f32::abs(outputs[1] - 0.9922374124398134) < DELTA);
+    }
+
+    #[test]
+    fn test_backward_propagate_error() {
+        let mut network = get_nn();
+
+        network.forward_propagate(&[0.0, 1.0]);
+        network.backward_propagate_error(&[0.0, 1.0]);
+
+        let pairs = [
+            (network.layers[0].neurons[0].delta, -0.06688876741137309),
+            (network.layers[0].neurons[1].delta, 0.0838845457008521),
+            (network.layers[0].neurons[2].delta, -0.1008803239903311),
+            (network.layers[1].neurons[0].delta, -0.02300232205870664),
+            (network.layers[1].neurons[1].delta, 0.06344094722446822),
+        ];
+        pairs.iter().enumerate().for_each(|(i, &(x, expected))| {
+            assert!(
+                f32::abs(x - expected) < LARGE_DELTA,
+                format!(
+                    "bad output at i = {} (got = {}, expected {})",
+                    i, x, expected
+                )
+            );
+        });
+    }
+
+    #[test]
+    fn test_activate() {
+        let mut neuron = Neuron::new(vec![-1.0, 2.0], -3.0);
+        assert!(f32::abs(neuron.activate(&[0.3, 0.6]) - 0.10909682119561298) < LARGE_DELTA);
+    }
 }
