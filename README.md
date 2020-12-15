@@ -1,10 +1,11 @@
 # backpropers
 
-My implementation of [How to Code a Neural Network with Backpropagation from scratch][0] in Rust.
+My implementation of backpropagation with neural networks in Rust.
 
-It is actually really fun to see this thing function, and the code is not too hard to follow!
-
-[0]: https://machinelearningmastery.com/implement-backpropagation-algorithm-scratch-python/
+The original work is by Jason Brownlee, How to Code a Neural Network with Backpropagation
+In Python (from scratch), Machine Learning Mastery, available from
+https://machinelearningmastery.com/implement-backpropagation-algorithm-scratch-python/,
+accessed December 14th, 2020.
 
 ## License
 
