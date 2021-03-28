@@ -39,6 +39,7 @@ impl Method for RouletteWheel {
 
 #[cfg(test)]
 mod tests {
+    use super::super::Chromosome;
     use super::*;
     use rand::SeedableRng as _;
     use rand_chacha::ChaCha8Rng;
@@ -50,6 +51,10 @@ mod tests {
     impl Individual for Doge {
         fn fitness(&self) -> f32 {
             self.fitness
+        }
+
+        fn chromosome(&self) -> &Chromosome {
+            unimplemented!()
         }
     }
 
