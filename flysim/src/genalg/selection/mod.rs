@@ -58,6 +58,12 @@ mod tests {
         }
     }
 
+    impl From<Chromosome> for Doge {
+        fn from(_: Chromosome) -> Self {
+            unimplemented!()
+        }
+    }
+
     #[test]
     fn roulette() {
         let mut rng = ChaCha8Rng::from_seed(Default::default());
