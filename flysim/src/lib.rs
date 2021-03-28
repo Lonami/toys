@@ -1,3 +1,3 @@
 mod network;
 
-pub use network::{Network, LayerTopology};
+pub use network::{LayerTopology, Network};

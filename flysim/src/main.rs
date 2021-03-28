@@ -1,4 +1,4 @@
-use flysim::{Network, LayerTopology};
+use flysim::{LayerTopology, Network};
 
 fn main() {
     // Topology inspired by https://www.youtube.com/watch?v=aircAruvnKk&list=PLZHQObOWTQDNU6R1_67000Dx_ZCJB-3pi&index=1
