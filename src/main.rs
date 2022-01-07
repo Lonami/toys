@@ -10,6 +10,7 @@ mod ray;
 mod rect;
 mod sphere;
 mod texture;
+mod translate;
 mod vec3;
 
 pub use aabb::AABB;
@@ -24,6 +25,7 @@ pub use ray::Ray;
 pub use rect::{XyRect, XzRect, YzRect};
 pub use sphere::{MovingSphere, Sphere};
 pub use texture::{CheckerTexture, ImageTexture, NoiseTexture, SolidColor, Texture};
+pub use translate::Translate;
 pub use vec3::Vec3;
 
 use oorandom::Rand64;
