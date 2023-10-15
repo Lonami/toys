@@ -1,0 +1,15 @@
+[package]
+name = "flysim"
+version = "0.1.0"
+authors = ["Lonami Exo <totufals@hotmail.com>"]
+edition = "2018"
+
+[lib]
+name = "flysim"
+
+[dependencies]
+rand = "0.8.3"
+
+[dev-dependencies]
+approx = "0.4.0"
+rand_chacha = "0.3.0"
