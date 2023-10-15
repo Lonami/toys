@@ -1,0 +1,38 @@
+@0
+## NAIVE NEG
+
+@1
+MOV UP, RIGHT
+
+@2
+MOV UP, DOWN
+MOV LEFT, DOWN
+
+@3
+
+
+@4
+
+
+@5
+
+
+@6
+MOV UP, ACC
+SUB UP
+MOV ACC, DOWN
+
+@7
+
+
+@8
+MOV RIGHT, ACC
+NEG
+MOV ACC, DOWN
+
+@9
+MOV UP, ACC
+MOV ACC, LEFT
+MOV ACC, DOWN
+
+@10

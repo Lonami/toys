@@ -1,0 +1,69 @@
+@0
+#            OUT.R
+#  0 < IN <  25: 0
+# 25 < IN <  50: 1
+# 50 < IN <  75: 2
+# 75 < IN < 100: 3
+#
+# OUT.E = LENGTH,
+#         NUMBER
+
+@1
+MOV UP DOWN
+
+@2
+
+
+@3
+
+
+@4
+MOV UP DOWN
+
+@5
+ST:
+MOV DOWN ACC
+SAV
+SUB DOWN
+JNZ NX
+
+CO:
+MOV -3 DOWN
+JMP ST
+
+NX:
+MOV 1 DOWN
+SWP
+MOV ACC DOWN
+
+@6
+MOV -1 ACC
+SWP
+MOV UP ACC
+L1: JLZ NX
+L2: SWP
+    ADD 1
+    SWP
+    SUB 25
+    JGZ L2
+NX: SWP
+    MOV ACC DOWN
+    MOV ACC RIGHT
+
+@7
+MOV LEFT ACC
+LP: MOV LEFT UP
+    MOV ACC UP
+    MOV -1 RIGHT
+    JRO UP
+    MOV 1 RIGHT
+    MOV RIGHT DOWN
+    MOV ACC DOWN
+    MOV UP ACC
+    JMP LP
+
+@8
+MOV -1 ACC
+ADD 1
+JRO LEFT
+MOV ACC LEFT

@@ -1,0 +1,56 @@
+@0
+## TWO COUNTERS
+
+@1
+MOV UP DOWN
+
+@2
+
+
+@3
+
+
+@4
+
+
+@5
+MOV UP ACC
+MOV ACC RIGHT
+MOV ACC DOWN
+
+@6
+MOV LEFT ACC
+
+LP: SWP
+    MOV ACC DOWN
+    SWP
+    SUB 1
+    JNZ LP
+
+SWP
+ADD 1
+SAV
+MOV 0 DOWN # DUMMY
+
+@7
+
+
+@8
+MOV UP ACC
+LP: MOV ACC RIGHT
+    SUB 1
+    JNZ LP
+MOV 999 RIGHT
+
+@9
+LP: MOV UP DOWN
+    MOV 18 ACC
+    SUB LEFT
+    JLZ NX
+    MOV ACC DOWN
+    MOV 3 DOWN
+    MOV -1 DOWN
+    JMP LP
+NX: MOV -1 DOWN
+
+@10

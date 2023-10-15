@@ -1,0 +1,39 @@
+@0
+
+
+@1
+
+
+@2
+
+
+@3
+
+
+@4
+
+
+@5
+
+
+@6
+## M / N
+# CONST M N
+#   MUT R Q K X
+# STKOV/8689674
+#
+# INT R = M
+# INT Q = 0
+# WHILE R >= N
+#   INT K = 1
+#   INT X = N
+#   WHILE X+X < R
+#     X += X
+#     K += K
+#   Q += K
+#   R -= X
+
+@7
+
+
+@8
