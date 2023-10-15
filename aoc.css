@@ -1,0 +1,30 @@
+/* pandoc -s dayX/definition.md -c aoc.css -o out.html*/
+body {
+    background-color: #112;
+    color: #ccc;
+}
+
+strong {
+    text-shadow: 0 0 4px #ccc;
+    color: #eee;
+    font-weight: normal;
+}
+
+em {
+    text-shadow: 0 0 4px #cc0;
+    color: #ffc;
+    font-style: normal;
+}
+
+code, pre {
+    background-color: #111;
+    border: 1px solid #ccc;
+    padding: 0 2px;
+    margin: 2px;
+    font-size: 120%;
+}
+
+pre code {
+    border: 0;
+    margin: 0;
+}
