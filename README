@@ -1,0 +1,51 @@
+My Attempts at https://ProjectEuler.net problems.
+
+The first attempts were in C# and date back to 24th  of January
+2016, the first of which I didn't save, the eighth problem does
+not work  (apparently?), some solutions are far from efficient,
+and I didn't get too far either.
+
+Some remarks:
+
+1. It seems like at first I didn't care much about saving my
+   progress, or the problems were too easy.  Problems 1 to 6
+   are missing, and 7 to 10 were screenshots before porting.
+
+2. The first function for primality testing was horribly in-
+   efficient.  It didn't check just until the square root or
+   the number, and constantly re-checked even numbers, being
+   running in a time of N instead of sqrt(N) / 2.
+
+3. I wasn't very aware of short-circuiting.  Most resolutions
+   run forever and don't early terminate. Some have expensive
+   checks first, and the cheap ones later.
+
+
+---------------------------------------------------------------
+
+
+The second attempt, this time with Python, was the 12th of July
+2016, and over a week reached problem 67. The code style wasn't
+fully developed yet, but improved.
+
+
+---------------------------------------------------------------
+
+
+Reading  https://boyter.org/posts/reading-files-quickly-in-rust/
+and seeing how it mentioned Project Euler made me want to tackle
+the problems once again, as of 3th of September of 2018.  I love
+the way  Rust  looks and I have tried learning it several times,
+however the lack of serious  projects make me easily abandon it.
+
+Now that I know and use git daily,  posting new solutions should
+happen as I solve them  instead just bulk adding all the files I
+had so far.
+
+
+---------------------------------------------------------------
+
+
+Only a resources/ folder is included in the top-level directory.
+You are supposed to copy or symlink this folder from the working
+directory of the code (Python and Rust), since it's .gitignored.
