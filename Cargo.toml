@@ -1,0 +1,9 @@
+[package]
+name = "rtow"
+version = "0.1.0"
+authors = ["Lonami Exo <totufals@hotmail.com>"]
+edition = "2018"
+
+[dependencies]
+oorandom = "11.1.2"
+jpeg-decoder = "0.1.20"
